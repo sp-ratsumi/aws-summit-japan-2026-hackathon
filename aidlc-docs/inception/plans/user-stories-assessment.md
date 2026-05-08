@@ -1,10 +1,10 @@
 # User Stories Assessment — アフターファイブ
 
 ## Request Analysis
-- **Original Request**: AWS Summit Japan 2026 ハッカソン用に「人をダメにするサービス — アフターファイブ」(定時退社を促す Tauri + Web アプリ) を AI-DLC で構築
-- **User Impact**: **Direct** — エンドユーザーが毎日直接使う、コア体験が UX そのもの
-- **Complexity Level**: **Complex** — 動的スケジューリング、AI 文言生成、マルチチャネル配信、終了動線の演出、初回ヒアリング等、複数のユーザー接点を持つ
-- **Stakeholders**: プロダクトオーナー (ユーザー本人)、ハッカソン審査員、将来のエンドユーザー (会社員)
+- **Original Request**: AWS Summit Japan 2026 ハッカソン用に「人をダメにするサービス — アフターファイブ」(仕事人間を "ダメな人間" に堕として翌日の創造性を引き出す Tauri + Web アプリ) を AI-DLC で構築
+- **User Impact**: **Direct** — エンドユーザーが毎日直接使う、コア体験 (堕落ランプ → 堕落ゲート → ダメモード突入) が UX そのもの
+- **Complexity Level**: **Complex** — 堕落ランプ (動的スケジューリング)、AI 文言生成 (堕落煽り)、マルチチャネル配信、堕落ゲート演出、ダメな欲望プロファイル収集 (初回ヒアリング) 等、複数のユーザー接点を持つ
+- **Stakeholders**: プロダクトオーナー (ユーザー本人)、ハッカソン審査員、将来のエンドユーザー (仕事人間)
 
 ## Assessment Criteria Met
 
@@ -38,7 +38,7 @@
 
 ## Expected Outcomes
 
-- コア体験 (煽り提示 → 退勤動線) を 1 シナリオ単位で貫通するストーリーセット
+- コア体験 (堕落ランプ煽り提示 → 堕落ゲート → ダメモード突入) を 1 シナリオ単位で貫通するストーリーセット
 - ペルソナ 2〜3 体 (例: 毎日残業する SE、ペット飼いの事務職、趣味に忙しいゲーマー) が判断基準として機能
 - 各 Story に AC (Acceptance Criteria) が付き、PBT / E2E テストに直結
 - Units Generation で責務分離の指針になる

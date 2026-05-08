@@ -1,7 +1,7 @@
 # Application Design — アフターファイブ
 
-**Version**: 1.0
-**Last Updated**: 2026-05-07
+**Version**: 2.0
+**Last Updated**: 2026-05-08
 **Purpose**: Requirements と User Stories を受けて、高レベルアーキテクチャ・コンポーネント・サービスレイヤを設計する統合ドキュメント。詳細ビジネスロジックは後段の Functional Design で。
 
 ---
@@ -23,7 +23,7 @@
 
 ## 1. Architecture Overview
 
-「アフターファイブ」は以下の 3 層で構成されるサーバーレス Web+Desktop アプリです:
+「アフターファイブ」は、**仕事人間を "ダメモード" へ堕とす** プロダクトとして、以下の 3 層で構成されるサーバーレス Web+Desktop アプリです:
 
 ```
 +-----------------------------------+
@@ -31,6 +31,7 @@
 |  - Tauri Desktop (macOS/Windows)  |
 |  - Web PWA (CloudFront + S3)      |
 |   (同一 React+TS コード)          |
+|   → 堕落ゲートを描画、堕落ランプを刻む
 +-----------------------------------+
                 |
           HTTPS + Cognito JWT
@@ -40,6 +41,7 @@
 |  - Amazon API Gateway (REST)      |
 |  - AWS Lambda (Python 3.12)       |
 |  - Lambda Authorizer (JWT verify) |
+|   → "ダメな未来" を AI で選定・配信
 +-----------------------------------+
                 |
 +-----------------------------------+
@@ -50,10 +52,11 @@
 |  - Amazon Bedrock (Claude)        |
 |  - EventBridge (監査/通知イベント) |
 |  - CloudWatch (Logs/Metrics/Alarm)|
+|   → "ダメな欲望プロファイル" と履歴を保持
 +-----------------------------------+
 ```
 
-**Core design principle**: クライアント中心のスケジューリング (FE-07 SchedulerClient) + サーバーは stateless な REST API + 外部化された AI / データ。
+**Core design principle**: クライアント中心のスケジューリング (FE-07 SchedulerClient = 堕落ランプ) + サーバーは stateless な REST API + 外部化された AI (= ダメな未来ジェネレータ) / データ。
 
 ---
 
@@ -70,7 +73,7 @@ Plan 回答の反映 (詳細は `plans/application-design-plan.md`):
 | エラー戦略 | **例外ベース** (B2=B) | Python 慣用、Lambda Powertools と相性良、トップレベルで一括変換 |
 | サービスレイヤ | **単一 Lambda 内の service 関数** (C1=C) | MVP に最適、低コスト、分離は論理層で |
 | 非同期処理 | **MVP 同期 → 将来非同期** (C2=C) | 単純、API Gateway の 29s 内で十分 |
-| スケジューラ | **クライアントサイド** (C3=A) | API コストゼロ、Tauri/Web どちらもフォアグラウンドで動作保証 |
+| スケジューラ | **クライアントサイド** (C3=A) | API コストゼロ、Tauri/Web どちらもフォアグラウンドで動作保証 (堕落ランプはクライアントで刻む) |
 | 通信パターン | **同期直接 + EventBridge ハイブリッド** (D1=D) | 主要フロー高速 + 監査は疎結合 |
 | データアクセス | **Single-Table + Repository** (D2=C) | DynamoDB ベストプラクティス、テスタブル |
 | API 契約 | **OpenAPI (YAML)** (D3=A) | 型生成で安全、ドキュメント自動化 |
@@ -85,11 +88,11 @@ Plan 回答の反映 (詳細は `plans/application-design-plan.md`):
 詳細は `aidlc-docs/inception/application-design/components.md`
 
 ### Summary
-- **Frontend**: 9 components (AppShell, Onboarding, ReminderFeed, NotificationAdapter, TerminationOverlay, PhotoManager, SchedulerClient, ApiClient, PlatformAdapter)
-- **Backend**: 12 components (Auth, Profile, SchedulerRef, ContentSelection, ContentRepo, Photo, History, Reaction, Termination, Notification, Audit, Infrastructure)
+- **Frontend**: 9 components (AppShell, Onboarding, ReminderFeed, NotificationAdapter, TerminationOverlay=堕落ゲート, PhotoManager, SchedulerClient=堕落ランプ, ApiClient, PlatformAdapter)
+- **Backend**: 12 components (Auth, Profile, SchedulerRef, ContentSelection=ダメな未来ジェネレータ, ContentRepo, Photo, History, Reaction, Termination, Notification, Audit, Infrastructure)
 - **Cross-Cutting**: 4 modules (Observability, SharedModels, RepositoryLayer, ErrorHandling)
 
-**Total**: 25 コンポーネント。全 27 User Story にマッピング完了 (components.md の Traceability Matrix)。
+**Total**: 25 コンポーネント。全 28 User Story にマッピング完了 (components.md の Traceability Matrix)。
 
 ---
 
@@ -101,8 +104,8 @@ Plan 回答の反映 (詳細は `plans/application-design-plan.md`):
 
 - 公開 API: REST / OpenAPI 準拠 (`/profile`, `/content/next`, `/photos/*`, `/terminations/*`, `/reactions`, `/history`, `/notifications/subscriptions`, `/account`)
 - 内部関数: Python 型付き疑似コード + 入出力スキーマ
-- 純粋関数 (`compute_rate_table`, `next_present_at`) は PBT-05 oracle
-- 全ての write メソッドは idempotent (PBT-04)
+- 純粋関数 (`compute_rate_table` = 堕落ランプ, `next_present_at`) は PBT-05 oracle
+- 全ての write メソッドは idempotent (PBT-04) — 堕落ゲート発動は日次一意
 
 ---
 
@@ -114,11 +117,11 @@ Plan 回答の反映 (詳細は `plans/application-design-plan.md`):
 
 | Service | Purpose |
 |---|---|
-| **S-01 Onboarding** | サインアップ + ヒアリング完了 |
-| **S-02 Reminder** | コア体験: Bedrock 連携で「別の未来」を選定・記録 |
-| **S-03 Termination** | 定時到達 / 早期退勤の記録 + ねぎらい生成 |
-| **S-04 Reaction** | リアクション記録 + LEAVE_NOW の二次発火 |
-| **S-05 PhotoUpload** | Pre-signed URL 発行 + 確認 + 削除 |
+| **S-01 Onboarding** | サインアップ + ヒアリング (ダメな欲望プロファイル収集) 完了 |
+| **S-02 Reminder** | コア体験: Bedrock 連携で "ダメな未来" を選定・記録 (堕落ランプ) |
+| **S-03 Termination** | 堕落ゲート発動 / 早期堕ちの記録 + ダメモード突入メッセージ生成 |
+| **S-04 Reaction** | リアクション記録 + LEAVE_NOW (もう堕ちる) の二次発火 |
+| **S-05 PhotoUpload** | Pre-signed URL 発行 + 確認 + 削除 (D1 ダメ欲望素材) |
 | **S-06 AccountDeletion** | 全データ包括削除 (Full) |
 
 **境界ルール**:
@@ -135,7 +138,7 @@ Plan 回答の反映 (詳細は `plans/application-design-plan.md`):
 ### Summary
 
 - **同期**: Client → API Gateway → Service → Component → Repository → AWS サービス
-- **非同期**: EventBridge バス `com.afterfive` でイベント発火、BE-11 Audit 等がコンシューム
+- **非同期**: EventBridge バス `com.afterfive` でイベント発火 (reaction.leave_now_requested = もう堕ちる、user.terminated = ダメモード突入 等)、BE-11 Audit 等がコンシューム
 - **循環依存**: ゼロ ✅
 - **Service 間独立**: ✅ (S-04 → S-03 のみ EventBridge 経由)
 
@@ -147,12 +150,12 @@ Plan 回答の反映 (詳細は `plans/application-design-plan.md`):
 
 | Entity | PK | SK | 主要属性 |
 |---|---|---|---|
-| UserProfile | `USER#<userId>` | `PROFILE` | punctualityTime, area, hobbyCategories, familyMembers[], petInfo[], foodPreferences[], oshi[], gameGenres[], uiToneIntensity |
-| Photo | `USER#<userId>` | `PHOTO#<photoId>` | s3Key, status, tag (family/pet/other), uploadedAt, aiCaption |
-| History | `USER#<userId>` | `HISTORY#<yyyy-mm-dd>#<iso-ts>#<contentId>` | category, generatedBody, presentedAt, contextSnapshot |
+| UserProfile (ダメな欲望プロファイル) | `USER#<userId>` | `PROFILE` | punctualityTime (ダメモード突入時刻), area, hobbyCategories (D5), familyMembers[] (D1), petInfo[] (D1), foodPreferences[] (D3), drinkPreferences[] (D4), oshi[] (D2), gameGenres[] (D5), trainLines[] (D6), damnIntensity (ダメモード強度 1-5) |
+| Photo (D1 素材) | `USER#<userId>` | `PHOTO#<photoId>` | s3Key, status, tag (family/pet/other), uploadedAt, aiCaption |
+| History (ダメ堕ち履歴) | `USER#<userId>` | `HISTORY#<yyyy-mm-dd>#<iso-ts>#<contentId>` | category, desireCategory (D1-D7), generatedBody, presentedAt, contextSnapshot |
 | Reaction | `USER#<userId>` | `REACTION#<iso-ts>#<contentId>` | action (SEEN/IGNORE/LEAVE_NOW), clientIdempotencyKey |
-| Termination | `USER#<userId>` | `TERMINATION#<yyyy-mm-dd>` | trigger, clockOutAt, message |
-| Content (dummy) | `CONTENT#<category>` | `<contentId>` | title, body, imageKey, metadata |
+| Termination (堕落ゲート発動記録) | `USER#<userId>` | `TERMINATION#<yyyy-mm-dd>` | trigger (PUNCTUALITY/EARLY), clockOutAt, message (ダメモード突入メッセージ) |
+| Content (dummy) | `CONTENT#<category>` | `<contentId>` | title, body, imageKey, desireCategory (D1-D7), metadata |
 
 **Table: `AuditTable`** (分離、append-only)
 
@@ -163,6 +166,7 @@ Plan 回答の反映 (詳細は `plans/application-design-plan.md`):
 **GSI (初期案)**:
 - `GSI1`: `GSI1PK=CATEGORY#<category>`, `GSI1SK=<iso-ts>` — カテゴリ横断の履歴集計 (Full で使用)
 - `GSI2`: `GSI2PK=<photoTag>`, `GSI2SK=<userId>#<uploadedAt>` — タグ別写真検索 (MVP では不要かも、後段で判断)
+- `GSI3` (オプション): `GSI3PK=DESIRE#<D1-D7>`, `GSI3SK=<userId>#<iso-ts>` — ダメ欲望カテゴリ別の堕ち傾向分析 (Full "翌日の創造性" 検証用、MVP では不要)
 
 **Access Patterns**:
 1. GetProfile(userId) → PK=USER#userId, SK=PROFILE
@@ -177,7 +181,7 @@ Plan 回答の反映 (詳細は `plans/application-design-plan.md`):
 
 ```mermaid
 flowchart TB
-    subgraph Client["🖥️ Client Tier"]
+    subgraph Client["🖥️ Client Tier — 堕落ランプ/堕落ゲート描画"]
         Tauri["Tauri Desktop<br/>(macOS/Windows)"]
         Web["Web PWA<br/>(Browser)"]
     end
@@ -192,18 +196,18 @@ flowchart TB
         Authz["Lambda Authorizer<br/>(BE-01 Auth)"]
     end
 
-    subgraph Compute["⚙️ Compute Tier"]
+    subgraph Compute["⚙️ Compute Tier — ダメな未来ジェネレータ"]
         LambdaSvc["AWS Lambda (Python 3.12)<br/>S-01..S-06 + BE-xx components<br/>Lambda Powertools"]
     end
 
-    subgraph Data["🗄️ Data Tier"]
+    subgraph Data["🗄️ Data Tier — ダメな欲望プロファイル/履歴"]
         Cog["Amazon Cognito<br/>User Pool"]
         DDB["DynamoDB<br/>AfterFiveTable + AuditTable"]
         S3Photo["S3 (Photos)<br/>SSE-KMS + OAC"]
         KMS["AWS KMS CMK"]
     end
 
-    subgraph AI["🤖 AI"]
+    subgraph AI["🤖 AI — 堕落煽りコピー生成"]
         Bedrock["Amazon Bedrock<br/>Claude Sonnet"]
     end
 
@@ -245,17 +249,17 @@ flowchart TB
 ### Text Alternative (Architecture Summary)
 
 ```
-Client: Tauri Desktop + Web PWA (同一 React/TS)
+Client: Tauri Desktop + Web PWA (同一 React/TS) → 堕落ランプ/堕落ゲート描画
   │
   └→ (Web) CloudFront → S3 Static Bundle + (API path) → API Gateway
   └→ (Tauri) HTTPS → API Gateway 直接
        │
        ├─ Lambda Authorizer → Cognito User Pool
-       └─ Lambda (Service + Component)
+       └─ Lambda (Service + Component) = ダメな未来ジェネレータ
             ├─ DynamoDB (AfterFiveTable / AuditTable) ← KMS 暗号化
             ├─ S3 (Photos) ← KMS + Public Access Block
-            ├─ Bedrock (Claude) ← 5s timeout, fallback あり
-            ├─ EventBridge (副作用: Audit / Notification)
+            ├─ Bedrock (Claude) ← 5s timeout, 堕落煽りコピー fallback あり
+            ├─ EventBridge (副作用: Audit / Notification / reaction.leave_now / user.terminated)
             └─ CloudWatch (Logs + Metrics + Alarms)
 ```
 
@@ -281,7 +285,7 @@ Client: Tauri Desktop + Web PWA (同一 React/TS)
 | SEC-12 認証 | Cognito パスワードポリシー + 無認証 API なし | ✅ Compliant |
 | SEC-13 完全性 | BE-11 Audit append-only, SE 素材 SRI, Pydantic 安全 deserialize | ✅ Compliant |
 | SEC-14 監視 | CloudWatch Alarms (auth fail, 5xx), Log Retention ≥90日 | ✅ Compliant |
-| SEC-15 例外処理 | X-04 例外階層 + top-level catch + fail-safe default (Bedrock フォールバック) | ✅ Compliant |
+| SEC-15 例外処理 | X-04 例外階層 + top-level catch + fail-safe default (Bedrock フォールバック = 堕落煽り途切れさせない) | ✅ Compliant |
 
 **Blocking findings**: **なし**。Planned (SEC-06/10) は後段ステージで詳細化。
 
@@ -290,12 +294,12 @@ Client: Tauri Desktop + Web PWA (同一 React/TS)
 | Rule | Covered By (Design) | Status |
 |---|---|---|
 | PBT-01 Property Identification | Per-unit Functional Design で精査 (全 Unit) | 🟡 Planned |
-| PBT-02 Round-Trip | X-02 SharedModels の JSON round-trip, Repository put/get | ✅ Compliant |
-| PBT-03 Invariant | BE-03 `compute_rate_table`, BE-04 文字数制約, FE-07 Scheduler invariant | ✅ Compliant |
-| PBT-04 Idempotence | BE-02 upsert, BE-06 confirm, BE-08 reaction, BE-09 termination, FE-07 startSession | ✅ Compliant |
+| PBT-02 Round-Trip | X-02 SharedModels の JSON round-trip, Repository put/get (ダメな欲望プロファイル含む) | ✅ Compliant |
+| PBT-03 Invariant | BE-03 `compute_rate_table` (堕落ランプ単調非増加), BE-04 文字数制約 + D4 酒の「飲まない」除外 invariant, FE-07 Scheduler invariant | ✅ Compliant |
+| PBT-04 Idempotence | BE-02 upsert, BE-06 confirm, BE-08 reaction, BE-09 termination (堕落ゲート日次冪等), FE-07 startSession | ✅ Compliant |
 | PBT-05 Oracle | BE-03 reference table を FE-07 SchedulerClient のテストで比較 | ✅ Compliant |
 | PBT-06 Stateful | FE-07 SchedulerClient + BE-07+BE-08 の一連コマンドを模擬モデルと比較 | ✅ Compliant |
-| PBT-07 Generator Quality | X-02 に custom strategies (profile, location, hearing) | ✅ Compliant |
+| PBT-07 Generator Quality | X-02 に custom strategies (ダメな欲望プロファイル、location, hearing) | ✅ Compliant |
 | PBT-08 Shrinking | Hypothesis / fast-check default 有効、CI seed log | 🟡 Planned (CI 設計で確定) |
 | PBT-09 Framework | Python=Hypothesis / TS=fast-check (Requirements で確定済) | ✅ Compliant |
 | PBT-10 Complementary | 各 Story AC を example-based E2E としても実装 (後段 Build and Test で確定) | 🟡 Planned |
@@ -310,10 +314,10 @@ Client: Tauri Desktop + Web PWA (同一 React/TS)
 
 - **Units (Unit of Work)** 分解の正式化 (`component-dependency.md` の予告を採用するか、別案か)
 - **Lambda 関数の物理分割**: ルートごと 1 関数 / サービス単位 1 関数 / モノリス 1 関数 のいずれにするか → Infrastructure Design
-- **Bedrock モデル選定**: Claude Sonnet vs Haiku、コストと品質のトレードオフ → NFR Design
+- **Bedrock モデル選定**: Claude Sonnet vs Haiku、コストと品質のトレードオフ → NFR Design (堕落煽りの品質とコストのバランス)
 - **CI/CD パイプライン**: GitHub Actions / AWS CodePipeline / 他 → Infrastructure Design + Build and Test
 - **Tauri の自動アップデート**: 必要か、どの仕組みを使うか → 次段で判断
-- **DynamoDB Single-Table の GSI 追加**: 実際のアクセスパターンを見ながら
+- **DynamoDB Single-Table の GSI 追加**: 実際のアクセスパターンを見ながら (特に "翌日の創造性" 検証用 GSI3)
 - **フロントエンドの State Management**: Zustand / Jotai / Redux Toolkit / TanStack Query → Functional Design
 
 ---
@@ -326,5 +330,5 @@ Client: Tauri Desktop + Web PWA (同一 React/TS)
 - [x] `component-dependency.md` 依存マトリクス + Mermaid 図 + 非循環検証
 - [x] `application-design.md` (本ドキュメント) で全体統合 + アーキ図
 - [x] Security / PBT 全 25 ルール (15+10) の状態を明示、blocking finding なし
-- [x] Story → Component の全 27 Story トレーサビリティ
+- [x] Story → Component の全 28 Story トレーサビリティ
 - [x] Content Validation: Mermaid 構文チェック + Text Fallback 付与

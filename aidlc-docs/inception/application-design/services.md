@@ -1,6 +1,7 @@
 # Services — アフターファイブ
 
-**Version**: 1.0
+**Version**: 2.0
+**Last Updated**: 2026-05-08
 **Service Layer Style**: 単一 Lambda 内の service 関数 (C1=C)、orchestrator は機能ドメイン単位の関数として配置。副作用 (監査/通知) は EventBridge 経由 (D1=D)
 **Overall Architecture**: 実用的レイヤードアーキテクチャ (E1=C): controller → service → repository → data
 
@@ -34,7 +35,7 @@
 
 # S-01: OnboardingOrchestrationService
 
-**Responsibilities**: 新規ユーザーがサインアップ〜ヒアリング完了までを繋ぐ一連の協調
+**Responsibilities**: 新規ユーザーがサインアップ〜ヒアリング (ダメな欲望プロファイル収集) 完了までを繋ぐ一連の協調
 
 **Orchestrates**: BE-01 AuthComponent、BE-02 ProfileComponent、BE-11 AuditComponent (via EventBridge)
 
@@ -44,9 +45,9 @@
 
 **Flow**:
 1. `AuthComponent.verify_jwt(jwt)` → JwtClaims (fail: AuthenticationError)
-2. `ProfileComponent.put_initial_profile(user_id, hearing_answers)` (冪等)
+2. `ProfileComponent.put_initial_profile(user_id, hearing_answers)` — ダメな欲望プロファイル (D1-D6 + D4 酒 + ダメモード強度) を冪等保存
 3. EventBridge emit `user.onboarded` イベント (AuditComponent が consume)
-4. 結果の UserProfile を返却
+4. 結果の UserProfile (ダメな欲望プロファイル) を返却
 
 **Invariants** (PBT):
 - 同一 jwt + 同一 hearing_answers の重複呼び出しは同一結果を返す (PBT-04)
@@ -56,9 +57,9 @@
 
 ---
 
-# S-02: ReminderOrchestrationService (最重要)
+# S-02: ReminderOrchestrationService (最重要、= ダメな未来ジェネレータ)
 
-**Responsibilities**: クライアントスケジューラが「次のコンテンツちょうだい」と叩く主フローを統括
+**Responsibilities**: クライアントスケジューラ (堕落ランプ) が「次のダメな未来ちょうだい」と叩く主フローを統括
 
 **Orchestrates**: BE-01 AuthComponent、BE-02 ProfileComponent (read)、BE-07 HistoryComponent (read + append)、BE-04 ContentSelectionComponent、BE-05 ContentRepositoryComponent、BE-06 PhotoComponent、External Bedrock
 
@@ -68,24 +69,25 @@
 
 **Flow**:
 1. Parallel read:
-   - `ProfileRepository.get(user_id)` → UserProfile
+   - `ProfileRepository.get(user_id)` → ダメな欲望プロファイル (UserProfile)
    - `HistoryRepository.get_recent(user_id, n=10)` → RecentHistory
 2. Build prompt:
-   - `ContentSelectionComponent.build_prompt(profile, context, recent_history)` (PII stripped)
+   - `ContentSelectionComponent.build_prompt(profile, context, recent_history)` (PII stripped、"飲まない" なら D4 除外)
 3. Invoke Bedrock with 5s timeout:
-   - 成功 → parse, sanitize, validate (category ∈ allowed, body length ∈ [20,80])
-   - 失敗/タイムアウト → fallback:
-     - カテゴリを profile の hobby から重み付きランダム選定
+   - 成功 → parse, sanitize, validate (category ∈ allowed [D1-D6], body length ∈ [20,80])
+   - 失敗/タイムアウト → fallback (堕落煽りを途切れさせない):
+     - カテゴリを profile の D1-D6 から重み付きランダム選定
      - ContentRepository.find_* で候補取得
-     - テンプレート文言 (`「{category}が待ってるよ」`) で body 生成
-4. カテゴリが `family|pet` なら PhotoRepository から 1 枚選んで imageUrl に埋め込み
-5. HistoryComponent.append(user_id, contentId, category, body) (idempotent append)
+     - テンプレート文言 (`「{desireCategory}が待ってるよ」`) で body 生成
+4. カテゴリが `family|pet` (D1) なら PhotoRepository から 1 枚選んで imageUrl に埋め込み
+5. HistoryComponent.append(user_id, contentId, category, desireCategory, body) (idempotent append)
 6. ContentResponse 返却
 
 **Invariants** (PBT):
 - 同一 context で 10 回呼び出したとき、同一カテゴリが 3 連続以上発生しない (PBT-03)
 - body 長さは常に 20〜80 chars (PBT-03)
-- failure path でも response は必ず返る (SEC-15 fail-safe)
+- プロファイルで "飲まない" なら D4 が永遠に選ばれない (PBT-03)
+- failure path でも response は必ず返る (SEC-15 fail-safe、堕落煽り継続)
 
 **Latency Target**: p95 3 秒、p99 5 秒 (Bedrock タイムアウト 5 秒)
 
@@ -93,11 +95,11 @@
 
 ---
 
-# S-03: TerminationOrchestrationService
+# S-03: TerminationOrchestrationService (= 堕落ゲート記録 + ダメモード突入メッセージ)
 
-**Responsibilities**: 定時到達 / 早期退勤ボタン押下時の一連処理
+**Responsibilities**: 定時到達 (堕落ゲート発動) / 早期堕ちボタン押下時の一連処理
 
-**Orchestrates**: BE-01 AuthComponent、BE-09 TerminationComponent、BE-04 ContentSelectionComponent (ねぎらい生成)、BE-11 AuditComponent (via EventBridge)
+**Orchestrates**: BE-01 AuthComponent、BE-09 TerminationComponent、BE-04 ContentSelectionComponent (ダメモード突入メッセージ生成)、BE-11 AuditComponent (via EventBridge)
 
 ## Operations
 
@@ -105,13 +107,13 @@
 
 **Flow**:
 1. 日付キー `yyyy-mm-dd` を timestamp から算出 (JST)
-2. `TerminationRepository.put_if_absent(user_id, date_key, trigger, timestamp)` (DynamoDB `ConditionExpression: attribute_not_exists(PK)`)
+2. `TerminationRepository.put_if_absent(user_id, date_key, trigger, timestamp)` (DynamoDB `ConditionExpression: attribute_not_exists(PK)`) — 堕落ゲート日次冪等
    - 初回 → 2 に進む
    - 2 度目以降 → `recorded: false`, 既存 message を返却して終了
-3. ねぎらい文生成:
+3. ダメモード突入メッセージ生成:
    - `ContentSelectionComponent.generate_closing_message(profile, trigger, today_history)` 呼び出し
-   - Bedrock 呼び出し → 20-50 chars
-   - 失敗時: テンプレート (`「お疲れさま！明日も頑張ろう」`)
+   - Bedrock 呼び出し → 20-50 chars (堕落肯定 + ねぎらい)
+   - 失敗時: テンプレート (`「お疲れさま!今日はダメになろう、明日は頑張ろう」`)
 4. Message を Termination レコードに追記保存 (optional、監査上便利)
 5. EventBridge emit `user.terminated` (AuditComponent consume)
 6. `{ recorded: true, message }` を返却
@@ -126,7 +128,7 @@
 
 # S-04: ReactionHandlerService
 
-**Responsibilities**: ユーザーリアクション (SEEN/IGNORE/LEAVE_NOW) の受付と二次効果
+**Responsibilities**: ユーザーリアクション (SEEN/IGNORE/LEAVE_NOW = もう堕ちる) の受付と二次効果
 
 **Orchestrates**: BE-01 AuthComponent、BE-08 ReactionComponent、BE-07 HistoryComponent、EventBridge
 
@@ -138,9 +140,9 @@
 1. HistoryRepository で contentId の所有権を確認 (自分の履歴にあるか) → なければ AuthorizationError (IDOR)
 2. ReactionRepository.put_if_absent(clientIdempotencyKey, ...) (冪等)
 3. action によるディスパッチ:
-   - `LEAVE_NOW` → EventBridge `reaction.leave_now_requested` emit → TerminationOrchestrationService が consumer ラムダで clock_out を先行記録 (クライアントの退勤ボタン押下待ち)
-   - `IGNORE` → (Full) カテゴリ重みを減点する event emit (MVP では実装しない、永続化のみ)
-   - `SEEN` → (Full) カテゴリ重みを若干加点
+   - `LEAVE_NOW` (もう堕ちる) → EventBridge `reaction.leave_now_requested` emit → TerminationOrchestrationService が consumer ラムダで clock_out を先行記録 (クライアントの堕落宣言ボタン押下待ち)
+   - `IGNORE` → (Full) そのダメ欲望カテゴリの重みを減点する event emit (MVP では実装しない、永続化のみ)
+   - `SEEN` → (Full) ダメ欲望カテゴリ重みを若干加点
 4. AuditEvent は LEAVE_NOW の時のみ発火 (SEEN/IGNORE は頻度が高く audit 肥大を避ける)
 
 **Invariants**:
@@ -219,10 +221,11 @@
 
 # Service Orchestration Flow Diagrams
 
-## Reminder Flow (コア体験)
+## Reminder Flow (コア体験、= 堕落ランプ + ダメな未来配信)
 
 ```
 Client (FE-07)       API Gateway          Lambda (s2_reminder)       Bedrock
+ = 堕落ランプ                           = ダメな未来ジェネレータ
     │                    │                       │                     │
     │ 17:15 timer hits   │                       │                     │
     ├──► POST            │                       │                     │
@@ -230,6 +233,7 @@ Client (FE-07)       API Gateway          Lambda (s2_reminder)       Bedrock
     │                    ├──► invoke             │                     │
     │                    │                       ├── verify_jwt        │
     │                    │                       ├── read profile      │
+    │                    │                       │   (ダメな欲望 P)    │
     │                    │                       ├── read history      │
     │                    │                       ├──► InvokeModel ────►│
     │                    │                       │                     ├ 3s
@@ -244,21 +248,23 @@ Client (FE-07)       API Gateway          Lambda (s2_reminder)       Bedrock
     │ (FE-03 feed)       │                       │                     │
 ```
 
-## Termination Flow
+## Termination Flow (= 堕落ゲート発動)
 
 ```
 Client (FE-05)       API Gateway          Lambda (s3_termination)    EventBridge
+ = 堕落ゲート UI
     │                    │                       │                        │
-    │ 18:00 overlay      │                       │                        │
-    │ button press       │                       │                        │
+    │ 18:00 堕落ゲート   │                       │                        │
+    │ 宣言ボタン押下     │                       │                        │
     ├──► POST            │                       │                        │
     │   /terminations/   │                       │                        │
     │      clock-out     │                       │                        │
     │                    ├──► invoke             │                        │
     │                    │                       ├ verify_jwt             │
     │                    │                       ├ put_if_absent date=today
+    │                    │                       │  (堕落ゲート日次冪等) │
     │                    │                       ├ generate_closing_msg   │
-    │                    │                       │ (Bedrock or fallback)  │
+    │                    │                       │ (ダメモード突入メッセ)│
     │                    │                       ├──► emit ──────────────►│
     │                    │                       │    user.terminated     │ ──► Audit Lambda
     │                    │                       │◄─ msg                  │

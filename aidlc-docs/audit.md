@@ -278,3 +278,26 @@
 **Context**: Units Generation Part 2 — Steps 12-15
 
 ---
+
+## Concept v2.0 Brush-up — Total Document Review
+**Timestamp**: 2026-05-08T00:00:00Z
+**User Input**: "コンセプトを以下のようにブラッシュアップしたい
+- **テーマ**: 人をダメにするサービス
+- **"ダメにする"の意味**: 私たちは **仕事人間を「ダメな人間」に堕とす**。遊び・家族・推し・食事・酒・ペット — 世間的には「生産性を下げる」と呼ばれがちな **"ダメな欲望"** こそが、明日の創造性の源であると信じる。
+- **コンセプト**: 明日の自分に任せて今日は精一杯ダメになる
+- **プロダクトビジョン**: 定時 1 時間前から、仕事とは無関係な魅力的な「別の未来 = "ダメな欲望" の具象」を働き手の視界に差し込み、"仕事モード" を解体して "ダメモード" へと堕とす。定時はその欲望にダイブするためのスタートライン。勤怠画面は「今日の仕事は終わりだ、明日の自分に任せてダメになれ」と本人に宣言させるための **堕落ゲート** として機能する。
+- **明日の創造性**: 遊び・家族・推し・食事・酒 を通して脳と身体を回復させ・刺激を混ぜた働き手は、翌日より良いアウトプットを出す。本プロダクトは「今日ダメになる自由」を勝ち取ることが「明日の創造性」に直結する、という仮説に全賭けする。すべてのドキュメントを総点検し、整合性を合わせること"
+**AI Response**: "コンセプト v2.0 ブラッシュアップを全ドキュメントに反映。変更点:
+(1) 哲学: 「楽しむ」→「ダメになる」に深化、ダメな欲望 = 明日の創造性の源 という仮説を中核へ
+(2) 用語刷新: ダメモード / 仕事モード / 堕落ゲート (= 勤怠画面) / 堕落ランプ (= 動的スケジューラ) / ダメな未来ジェネレータ (= ContentSelection) / ダメな欲望プロファイル (= UserProfile)
+(3) カテゴリ拡張: D1-D7 の「ダメな欲望」を正式定義。D4 酒を新規追加 (MVP 内)
+(4) Story 再編: D4 酒テロを US-02-09 として新規追加、旧 US-02-09 履歴閲覧は US-02-10 にシフト。Story 数 27→28、MVP 19→20
+(5) コピーライティング: 「今日の仕事は終わりだ、明日の自分に任せてダメになれ」「ダメになるためにここを押せ」「今日もおつかれ。さあ、明日の自分に任せよう」等、堕落を肯定する一貫したコピー
+(6) 反映ファイル: requirements.md, personas.md, stories.md, application-design.md, components.md, services.md, component-methods.md, component-dependency.md, unit-of-work.md, unit-of-work-dependency.md, unit-of-work-story-map.md, execution-plan.md, application-design-plan.md, story-generation-plan.md, unit-of-work-plan.md, user-stories-assessment.md, aidlc-state.md
+(7) Security / PBT: 影響なし (blocking finding ゼロ維持)。ただし PBT-03 に「D4 飲まない → 永遠に選ばれない」invariant を追加、PBT-04 に「堕落ゲート日次冪等」を明示
+(8) ペルソナ: 4 ペルソナすべての Gains に D4 酒 を追加 (P1 ビール / P2 ワイン / P3 ハイボール / P4 サワー)、各ペルソナに「明日の創造性 (本人仮説)」セクションを新設
+(9) 用語集 (requirements.md Appendix A) を大幅拡充 — ダメにする/ダメな欲望/ダメモード/仕事モード/堕落ランプ/定時=ダメモード突入時刻/堕落ゲート/明日の創造性/ダメな欲望プロファイル 等
+(10) データモデル: UserProfile に drinkPreferences (D4) 追加、History/Content に desireCategory (D1-D7) 追加"
+**Context**: Concept v2.0 brush-up — total documentation review and alignment
+
+---

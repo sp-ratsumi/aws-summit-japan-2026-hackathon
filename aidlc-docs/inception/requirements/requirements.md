@@ -1,8 +1,8 @@
-# Requirements — アフターファイブ (After Five)
+# Requirements — アフターファイブ
 
-**Version**: 1.0
-**Last Updated**: 2026-05-07
-**Project Type**: Greenfield / AWS Summit Japan 2026 Hackathon MVP
+**Version**: 1.1
+**Last Updated**: 2026-05-08
+**Project Type**: Greenfield / 「人をダメにするサービス」プロダクト開発
 
 ---
 
@@ -10,12 +10,12 @@
 
 | 項目 | 内容 |
 |---|---|
-| **User Request** | ハッカソン「人をダメにするサービス」テーマで、定時退社を促すアプリ「アフターファイブ」を AI-DLC を使って構築したい |
+| **User Request** | 「人をダメにするサービス」というテーマで、定時退社を仕掛けるアプリ「アフターファイブ」を AI-DLC を使って構築したい |
 | **Request Type** | New Project (Greenfield) |
 | **Scope Estimate** | System-wide (フロントエンド / バックエンド / AI / データストア / 認証 / インフラまで含む) |
 | **Complexity Estimate** | Complex (AI 連携、マルチチャネル配信 <Desktop + Web>、外部コンテキスト連携、動的スケジューリング) |
-| **Primary Goal** | AWS Summit 2026 ハッカソンで評価される MVP (2週間で MVP、1ヶ月でフルデモ) |
-| **Judging Focus** | ビジネス意図の明確さ、創造性とテーマ適合性、Unit 分解の適切さ、ドキュメントの品質、アイデアと技術のバランス |
+| **Primary Goal** | 「明日の自分に任せて今日は精一杯楽しむ」というコンセプトを体現する、定時退社を強く後押しするプロダクトを実装すること |
+| **Product Focus** | 働き手の退勤動線を設計で支援し、家族・推し・趣味・食・天気などの「別の未来」をユーモラスな AI コピーで提示する |
 
 ### 1.1 Concept
 
@@ -145,7 +145,7 @@
 
 ### NFR-02: スケーラビリティ
 - サーバーレス構成 (Lambda + DynamoDB + API Gateway) により水平スケール。
-- ハッカソンデモでは同時 100 ユーザー程度を想定 (実計測は行わない)。
+- 初期想定負荷は同時 100 ユーザー程度 (実計測は行わない)。
 
 ### NFR-03: セキュリティ (Security Baseline Extension — **Enforced**)
 
@@ -231,26 +231,26 @@
 
 ---
 
-## 6. Success Criteria (Hackathon Judging Angle)
+## 6. Success Criteria (プロダクト価値)
 
-ユーザーが強調する審査観点を踏まえ、次の達成基準を置く:
+本プロダクトは「人をダメにするサービス」テーマを真面目に設計で具現化することを目的とする。次を達成基準とする。
 
 | 観点 | 達成基準 |
 |---|---|
-| **ビジネス意図の明確さ** | 本ドキュメント + User Stories + Functional Design で意図と価値が一貫して追える |
-| **創造性とテーマ適合性** | 「人をダメにする」テーマに沿って、定時退社を強制する煽り UI + AI 動的コピーが動くデモ |
-| **Unit 分解の適切さ** | Workflow Planning / Units Generation で明確な責務分離 (認証 / プロファイル / スケジューラ / コンテンツ / 通知 / 終了動線 / 画像) |
-| **ドキュメント品質** | AI-DLC 全フェーズの成果物を `aidlc-docs/` に揃える |
-| **アイデアと技術のバランス** | AWS Bedrock・Cognito・S3・DynamoDB・Lambda・CloudFront・Tauri を説明可能な必然性で利用 |
+| **コンセプト体現** | 定時 1 時間前から 18:00 に向けて提示頻度が逓増し、18:00 に全画面オーバーレイ + ダミー勤怠画面で退勤動線を提示する一連の体験が動作する |
+| **ユーザー文脈適合** | 初回ヒアリング結果 + 現在時刻 + 位置情報 + 直近履歴を踏まえ、AI がユーモラスな日本語コピーを生成し、カテゴリの偏りを避けて提示する |
+| **感情フック** | 家族・ペット写真の AI キャプションと、趣味/食/天気/電車ダミーデータの組み合わせで、4 ペルソナそれぞれの「帰りたい動機」に刺さるコンテンツが最低 1 件発火する |
+| **マルチチャネル** | 同一 React コードベースから Tauri デスクトップビルドと Web PWA ビルドの両方が生成でき、どちらも同じバックエンド API で動作する |
+| **セキュリティ・プライバシー** | Security Baseline 全 15 ルールと PBT 全 10 ルールが Enforced のまま、blocking finding ゼロで MVP を通す |
 
 ---
 
 ## 7. Assumptions and Constraints
 
-- ハッカソンの提出スケジュールは 2 週間 MVP → 1 ヶ月フルデモ。
 - ユーザーは日本国内在住で、JST で稼働する。
 - Bedrock は東京リージョンまたは最寄り利用可能リージョンでアクセスする (後段のインフラ設計で決定)。
-- 開発チームは本 AI-DLC ワークフローに沿って段階的に成果物を作り上げる。
+- 開発は本 AI-DLC ワークフローに沿って段階的に成果物を作り上げる。
+- MVP と Full は製品フェーズとして分け、MVP = コア体験 (17:00 → 18:00 → 退勤) を通すのに必要な機能、Full = 履歴閲覧・写真管理・アカウント削除など周辺機能、とする。
 
 ---
 
@@ -272,7 +272,6 @@
 | NFR-03 | Security Baseline opt-in: A (enforce) |
 | NFR-05 | Property-Based Testing opt-in: A (enforce) |
 | NFR-06 | Q26 (A: Japanese only) |
-| Judging angle | Q3 (X: intent / creativity / unit decomp / doc / balance) |
 
 ---
 
@@ -285,4 +284,3 @@
 | **終了動線** | 定時到達時にダミー勤怠画面を前面に出し、ユーザー自身に退勤ボタンを押させる演出フロー。 |
 | **ヒアリング** | 初回ログイン時にユーザープロファイル (趣味・家族・通勤等) を 10 問以上で収集する処理。 |
 | **Tauri** | Rust + Web 技術でデスクトップアプリを作るフレームワーク。 |
-

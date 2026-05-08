@@ -5,7 +5,7 @@
 - **Project Type**: Greenfield
 - **Start Date**: 2026-05-07T00:00:00Z
 - **Current Stage**: INCEPTION - Requirements Analysis
-- **Context**: AWS Summit Japan 2026 Hackathon
+- **Context**: 「人をダメにするサービス」をテーマとした、定時退社支援プロダクト開発
 
 ## Workspace State
 - **Existing Code**: No

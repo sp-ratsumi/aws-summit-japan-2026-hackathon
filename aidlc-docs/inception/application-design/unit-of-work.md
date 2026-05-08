@@ -1,7 +1,7 @@
 # Unit of Work — アフターファイブ
 
-**Version**: 1.0
-**Last Updated**: 2026-05-07
+**Version**: 2.0
+**Last Updated**: 2026-05-08
 **Decomposition Strategy**: 機能ドメイン単位 (U2=A)、8 Unit (U1=A)
 
 ---
@@ -12,13 +12,13 @@
 
 | Unit | Name | 主責務 | MVP Story 数 | Full Story 数 |
 |---|---|---|---:|---:|
-| **U1** | identity | 認証・プロファイル・アカウント削除 | 4 | 2 |
-| **U2** | reminder | スケジューラ参照実装・コンテンツ選定・履歴 | 7 | 1 |
-| **U3** | termination | リアクション・終了動線 | 4 | 1 |
-| **U4** | photo | 画像アップロード・配信・管理 | 2 | 2 |
-| **U5** | audit-observability | 監査ログ・可観測性 | 2 | 2 |
+| **U1** | identity | 認証・ダメな欲望プロファイル・アカウント削除 | 4 | 2 |
+| **U2** | reminder | 堕落ランプ参照実装・ダメな未来ジェネレータ・履歴 | 8 | 1 |
+| **U3** | termination | リアクション (もう堕ちる)・堕落ゲート | 4 | 1 |
+| **U4** | photo | 画像アップロード・配信・管理 (D1 ダメ欲望素材) | 2 | 2 |
+| **U5** | audit-observability | 監査ログ・可観測性 | 0 | 2 |
 | **U6** | shared-library | 共通 Python Lambda Layer + TS 共有型 | 0 (横断) | 0 (横断) |
-| **U7** | frontend | Tauri + Web PWA (React/TS) | 全 MVP 対応 | 全 Full 対応 |
+| **U7** | frontend | Tauri + Web PWA (React/TS) + 堕落ランプ/堕落ゲート UI | 全 MVP 対応 | 全 Full 対応 |
 | **U8** | infrastructure | CDK (Python) 全スタック | (横断) | (横断) |
 
 ---
@@ -120,13 +120,13 @@ aws-summit-japan-2026-hackathon/
 
 ### U1: identity
 
-- **Purpose**: ユーザー認証・プロファイル・アカウント削除
+- **Purpose**: ユーザー認証・ダメな欲望プロファイル・アカウント削除
 - **Components**: BE-01 Auth, BE-02 Profile, S-01 Onboarding, S-06 AccountDeletion
 - **Directory**:
   - Backend: `apps/backend/functions/identity/`
   - OpenAPI: `openapi/schema.yaml` の `/auth`, `/profile`, `/account` パス
 - **Lambda Functions** (U9=B Route 1:1):
-  - `POST /profile` → `post_profile.py`
+  - `POST /profile` → `post_profile.py` (ダメな欲望プロファイル upsert)
   - `GET /profile` → `get_profile.py`
   - `PATCH /profile` → `patch_profile.py`
   - `DELETE /account` → `delete_account.py`
@@ -138,55 +138,55 @@ aws-summit-japan-2026-hackathon/
 - **Key Tech**:
   - Python 3.12
   - Cognito via `boto3 cognito-idp`
-  - Pydantic v2 for validation
+  - Pydantic v2 for validation (ダメな欲望プロファイル schema)
 - **Depends On**: U6 (shared-py), U8 (infra bootstrap)
 
 ---
 
 ### U2: reminder
 
-- **Purpose**: コア体験 — 「別の未来」コンテンツ選定とプッシュ、履歴管理
-- **Components**: BE-03 SchedulerRef, BE-04 ContentSelection, BE-05 ContentRepo, BE-07 History, S-02 Reminder
+- **Purpose**: コア体験 — 「ダメな未来」コンテンツ選定とプッシュ、履歴管理 (堕落ランプ + ダメな未来ジェネレータ)
+- **Components**: BE-03 SchedulerRef (堕落ランプ reference), BE-04 ContentSelection (ダメな未来ジェネレータ), BE-05 ContentRepo, BE-07 History, S-02 Reminder
 - **Directory**:
   - Backend: `apps/backend/functions/reminder/`
   - OpenAPI: `/content/next`, `/sessions/*`, `/history` パス
 - **Lambda Functions**:
-  - `POST /content/next` → `post_content_next.py` (コア)
+  - `POST /content/next` → `post_content_next.py` (コア、ダメな未来生成)
   - `GET /history?days=N` → `get_history.py`
   - `POST /sessions/start` → `post_session_start.py`
   - `POST /sessions/stop` → `post_session_stop.py`
 - **External AWS**: Amazon Bedrock (Claude), DynamoDB, EventBridge
-- **Stories Covered**: US-02-01, 02-02, 02-03, 02-06, 02-07, 02-08, 02-09, (US-04-02 AI キャプションは U2 にも依存)
-- **MVP / Full**: 7 MVP + 1 Full (Full=US-02-09 履歴閲覧)
+- **Stories Covered**: US-02-01 (堕落ランプ), 02-02, 02-03 (AI 選定), 02-06 (D3), 02-07 (D2/D5), 02-08 (D6), 02-09 (D4 酒), 02-10, (US-04-02 AI キャプションは U2 にも依存)
+- **MVP / Full**: 8 MVP + 1 Full (Full=US-02-10 履歴閲覧)
 - **Key Tech**:
   - Bedrock client (`boto3 bedrock-runtime`)
-  - Hypothesis PBT for SchedulerRef / invariants
-  - Dummy data seeding for ContentRepo (`content-seed.json`)
+  - Hypothesis PBT for SchedulerRef / invariants (堕落ランプ単調非増加、D4 除外)
+  - Dummy data seeding for ContentRepo (`content-seed.json` — D3 20+件, D4 25+件, D5 5件/sub-cat, D6 dummy)
 - **Depends On**: U6 (shared-py), U8 (infra bootstrap), U4 (PhotoRepository for family/pet images - read-only access)
 
 ---
 
 ### U3: termination
 
-- **Purpose**: リアクション記録 + 退勤動線 (定時オーバーレイ後のサーバー側処理)
+- **Purpose**: リアクション記録 (もう堕ちる含む) + 堕落ゲート (退勤動線のサーバー側処理)
 - **Components**: BE-08 Reaction, BE-09 Termination, S-03 Termination, S-04 Reaction
 - **Directory**:
   - Backend: `apps/backend/functions/termination/`
   - OpenAPI: `/reactions`, `/terminations/*` パス
 - **Lambda Functions**:
   - `POST /reactions` → `post_reaction.py`
-  - `POST /terminations/clock-out` → `post_clock_out.py`
-  - EventBridge consumer → `event_leave_now_consumer.py` (reaction.leave_now)
-- **External AWS**: DynamoDB, EventBridge, Bedrock (ねぎらい文生成は U2 の BE-04 経由で呼び出し)
-- **Stories Covered**: US-02-05 (リアクション), US-03-01 (オーバーレイ起動は FE, バックエンドは受け側), US-03-02, US-03-03, US-03-04
-- **MVP / Full**: 4 MVP + 1 Full (Full=US-03-04 退勤メッセージ AI 生成)
-- **Depends On**: U6, U8, **U2** (ContentSelection の closing message 生成を再利用)
+  - `POST /terminations/clock-out` → `post_clock_out.py` (堕落ゲート宣言記録)
+  - EventBridge consumer → `event_leave_now_consumer.py` (reaction.leave_now = もう堕ちる)
+- **External AWS**: DynamoDB, EventBridge, Bedrock (ダメモード突入メッセージ生成は U2 の BE-04 経由で呼び出し)
+- **Stories Covered**: US-02-05 (リアクション), US-03-01 (堕落ゲート発動は FE, バックエンドは受け側), US-03-02 (堕落宣言ボタン), US-03-03 (早期堕ち), US-03-04 (ダメモード突入メッセージ)
+- **MVP / Full**: 4 MVP + 1 Full (Full=US-03-04 ダメモード突入メッセージ AI 生成)
+- **Depends On**: U6, U8, **U2** (ContentSelection のメッセージ生成を再利用)
 
 ---
 
 ### U4: photo
 
-- **Purpose**: 家族・ペット写真のアップロード・配信・管理
+- **Purpose**: 家族・ペット写真 (D1 ダメ欲望素材) のアップロード・配信・管理
 - **Components**: BE-06 Photo, S-05 PhotoUpload
 - **Directory**:
   - Backend: `apps/backend/functions/photo/`

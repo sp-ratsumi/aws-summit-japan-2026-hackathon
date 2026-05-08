@@ -2,7 +2,7 @@
 
 **Stage**: INCEPTION — Workflow Planning
 **Project Type**: Greenfield
-**Date**: 2026-05-07
+**Date**: 2026-05-08
 
 ---
 
@@ -15,19 +15,19 @@ N/A (Greenfield プロジェクト)
 
 | 観点 | 評価 | 説明 |
 |---|---|---|
-| **User-facing changes** | Yes (全面) | コア体験そのものが新規 UX (煽りコンテンツ、全画面退勤オーバーレイ) |
+| **User-facing changes** | Yes (全面) | コア体験そのものが新規 UX (堕落煽り系コンテンツ、堕落ゲート) |
 | **Structural changes** | Yes (全面) | システム新規構築、サーバーレス構成 (CloudFront + S3 + API Gateway + Lambda + Cognito + DynamoDB + Bedrock) |
-| **Data model changes** | Yes (新規) | UserProfile, Content, PresentationHistory, Reaction, Photo の 5 系エンティティ |
+| **Data model changes** | Yes (新規) | UserProfile (ダメな欲望プロファイル), Content, PresentationHistory, Reaction, Photo の 5 系エンティティ |
 | **API changes** | Yes (新規) | REST API Gateway で 10〜15 エンドポイント新設想定 |
 | **NFR impact** | Yes (高) | Security Baseline 15 ルール + PBT 10 ルール を enforced として適用 |
 
 ### Complexity Drivers
 - マルチチャネル配信 (Tauri デスクトップ + Web PWA の 2 ビルド)
-- 動的スケジューラ (時刻によって提示頻度が変動、状態を持つ)
-- AI (Bedrock) 連携 (プロンプト設計、フォールバック、コスト最適化)
-- 5 種類以上のコンテンツカテゴリ (家族・飲食・趣味・電車・天気)
-- リアクション/履歴の冪等書き込み
-- プライバシー設計 (位置情報粒度、IDOR 対策、画像の所有権チェック)
+- 動的スケジューラ (堕落ランプ — 時刻によって提示頻度が単調非増加で変動、状態を持つ)
+- AI (Bedrock) 連携 (堕落煽りプロンプト設計、フォールバック、コスト最適化)
+- 7 種類のダメな欲望カテゴリ D1-D7 (MVP は D1-D6 = 家族・推し・食・**酒 (D4)**・趣味・通勤天気)
+- リアクション/履歴の冪等書き込み、堕落ゲート日次冪等
+- プライバシー設計 (位置情報粒度、IDOR 対策、画像の所有権チェック、D4「飲まない」ユーザー意思尊重)
 - セキュリティ要件 (Cognito + 暗号化 + 入力検証 + レート制限 + 監査)
 
 ### Risk Assessment
@@ -192,24 +192,24 @@ OPERATIONS PHASE:
 | Build and Test | 1 | 1-2 日 |
 | **合計** | | **約 2 週間 (MVP)** |
 
-- **MVP (2 週間)**: Units のうち MVP 分 (Auth, Profile, Scheduler, Content, Notification, Termination, Photo) を実装、Full 分は後回し
+- **MVP (2 週間)**: Units のうち MVP 分 (Auth, Profile, Scheduler=堕落ランプ, Content=ダメな未来ジェネレータ, Notification, Termination=堕落ゲート, Photo) を実装、Full 分は後回し
 - **フルデモ (1 ヶ月)**: Full ラベルの Story まで含めて実装、Build and Test で E2E デモシナリオを作り込み
 
 ---
 
 ## Success Criteria
 
-- **Primary Goal**: AWS Summit 2026 ハッカソンで評価される MVP を完成させる。審査軸の 5 点 (意図 / 創造性 / Unit 分解 / ドキュメント / 技術バランス) すべてで高得点を狙う
+- **Primary Goal**: AWS Summit 2026 ハッカソンで評価される MVP を完成させる。審査軸の 5 点 (意図 / 創造性 / Unit 分解 / ドキュメント / 技術バランス) すべてで高得点を狙う。コンセプト (ダメにする哲学 + 明日の創造性 仮説) を一貫して語る。
 - **Key Deliverables**:
   - `aidlc-docs/` 配下の全ドキュメント (Requirements → Stories → Application Design → Units → Per-Unit Design → Code Plan + Summary → Build & Test)
   - 動く Tauri デスクトップアプリ + Web PWA
-  - デモ可能な定時オーバーレイ + AI 生成コンテンツの連携
+  - デモ可能な堕落ゲート + ダメな未来ジェネレータ (Bedrock) の連携
   - CI/CD 済みの AWS バックエンド (IaC 付き)
 - **Quality Gates**:
   - Security Baseline 15 ルール全てで Compliant or N/A (blocking finding ゼロ)
   - PBT 10 ルール全てで Compliant or N/A (blocking finding ゼロ)
-  - MVP Story (19 件) すべて AC を満たす
-  - E2E デモシナリオ (17:00 ログイン → 17:45 コンテンツ連発 → 18:00 オーバーレイ → 退勤) が 1 発で流れる
+  - MVP Story (20 件) すべて AC を満たす
+  - E2E デモシナリオ (17:00 ログイン → 堕落ランプで D1-D6 連発 → 18:00 堕落ゲート → ダメモード突入) が 1 発で流れる
 
 ---
 

@@ -1,6 +1,7 @@
 # Component Methods — アフターファイブ
 
-**Version**: 1.0
+**Version**: 2.0
+**Last Updated**: 2026-05-08
 **Method Signature Style**: OpenAPI / JSON Schema 風 (B1=B)
 **Scope**: 各コンポーネントの "公開メソッド" のインターフェイス (詳細ビジネスルールは Functional Design で)
 
@@ -46,25 +47,27 @@
 
 ## BE-02: ProfileComponent
 
-### `POST /profile` (create/update profile after hearing)
+### `POST /profile` (create/update profile after hearing = ダメな欲望プロファイル登録)
 - **Input**:
   ```yaml
-  UserProfile:
-    punctualityTime: string (HH:mm, default "18:00")
+  UserProfile:  # ダメな欲望プロファイル
+    punctualityTime: string (HH:mm, default "18:00")  # ダメモード突入時刻
     area: string (district level, e.g. "品川区")
-    trainLines: string[]
-    hobbyCategories: string[] (enum: sauna|gym|movie|anime|oshi|game|other)
-    familyMembers:
+    trainLines: string[]  # D6
+    hobbyCategories: string[] (enum: sauna|gym|movie|anime|oshi|game|other)  # D5
+    familyMembers:  # D1
       - type: enum (spouse|child|pet)
         nickname: string
-    petInfo:
+    petInfo:  # D1
       - type: enum (cat|dog|other)
         nickname: string
-    foodPreferences: string[] (enum: izakaya|ramen|cafe|other)
-    oshi:
+    foodPreferences: string[] (enum: izakaya|ramen|cafe|other)  # D3
+    drinkPreferences:  # D4
+      genres: string[] (enum: beer|sour|highball|sake|wine|none)
+    oshi:  # D2
       - name: string (free text, e.g. 推しの名前・配信者名)
-    gameGenres: string[]
-    uiToneIntensity: integer (1-5, 煽り強度)
+    gameGenres: string[]  # D5
+    damnIntensity: integer (1-5, ダメモード強度 = 煽り強度)
   ```
 - **Output**: `UserProfile` (保存後の正規化済)
 - **Errors**: `ValidationError`, `AuthenticationError`
@@ -86,28 +89,28 @@
 
 ---
 
-## BE-03: SchedulerComponent (Reference Implementation)
+## BE-03: SchedulerComponent (Reference Implementation, = 堕落ランプ reference 実装)
 
 ### `next_present_at(session_start: ISO8601, now: ISO8601, punctuality: HH:mm) → ISO8601`
-- **Purpose**: PBT-05 oracle。クライアントのスケジューラと同一ロジックを "reference table" で実装
-- **Input**: セッション開始時刻、現在時刻、ユーザー定時
+- **Purpose**: PBT-05 oracle。クライアントのスケジューラ (= 堕落ランプ) と同一ロジックを "reference table" で実装
+- **Input**: セッション開始時刻、現在時刻、ユーザー定時 (= ダメモード突入時刻)
 - **Output**: 次回提示時刻 (UTC ISO8601)
 - **Errors**: `ValidationError`
 - **Notes**: 純粋関数、副作用なし。Hypothesis / fast-check で property テスト
 
-### `compute_rate_table(remaining_minutes: integer) → integer` (interval in minutes)
-- **Purpose**: レート計算の基礎関数 (table-driven)
-- **Rate table** (FR-02-01 準拠):
+### `compute_rate_table(remaining_minutes: integer) → integer` (interval in minutes, = 堕落ランプの核)
+- **Purpose**: レート計算の基礎関数 (table-driven) — 堕落ランプ単調非増加の定義
+- **Rate table** (FR-02-01 準拠、堕落ランプ):
   ```
-  remaining >= 40 minutes → 12 minutes interval
-  20 <= remaining < 40   → 7 minutes interval
-  5  <= remaining < 20   → 3 minutes interval
-  0  <= remaining < 5    → 2 minutes interval
-  remaining < 0          → stop (return None/error sentinel)
+  remaining >= 40 minutes → 12 minutes interval  (仕事モードに軽くヒビ)
+  20 <= remaining < 40   → 7 minutes interval   (ダメな欲望が視界を侵食)
+  5  <= remaining < 20   → 3 minutes interval   (仕事モード崩壊寸前)
+  0  <= remaining < 5    → 2 minutes interval   (ダメモード寸前)
+  remaining < 0          → stop (return None/error sentinel、堕落ゲート発動へ)
   ```
 - **Output**: 次までの待機分数 (integer)
 - **Invariants** (PBT-03):
-  - input が減少すると output も単調非増加
+  - input が減少すると output も単調非増加 (堕落ランプ不変条件)
   - output は常に正の整数
 
 ### `POST /sessions/start` / `POST /sessions/stop`
@@ -117,10 +120,10 @@
 
 ---
 
-## BE-04: ContentSelectionComponent
+## BE-04: ContentSelectionComponent (= ダメな未来ジェネレータ)
 
 ### `POST /content/next`
-- **Purpose**: クライアントスケジューラが提示時刻になったらコールする主 API
+- **Purpose**: クライアントスケジューラ (堕落ランプ) が提示時刻になったらコールする主 API — "ダメな未来" を具象化して返す
 - **Input**:
   ```yaml
   ContentRequest:
@@ -134,34 +137,37 @@
   ```yaml
   ContentResponse:
     contentId: string
-    category: enum (restaurant|hobby|train|weather|family|pet|other)
+    category: enum (restaurant|hobby|train|weather|family|pet|drink|other)  # drink = D4 酒
+    desireCategory: enum (D1|D2|D3|D4|D5|D6|D7)  # ダメ欲望カテゴリ
     title: string
-    body: string  # AI-generated copy, 20-80 chars
+    body: string  # AI-generated 堕落煽りコピー, 20-80 chars
     imageUrl?: string
-    actions: ["SEEN", "IGNORE", "LEAVE_NOW"]
+    actions: ["SEEN", "IGNORE", "LEAVE_NOW"]  # LEAVE_NOW = もう堕ちる
   ```
 - **Errors**: `UpstreamError` (Bedrock 失敗時 → フォールバック使用), `ValidationError`
 - **Side Effects**:
-  1. Profile を取得
+  1. Profile (ダメな欲望プロファイル) を取得
   2. Recent history を取得 (直近 N=10)
   3. Bedrock (Claude) をコール (5 秒 timeout)
   4. 応答パース → sanitize → HistoryComponent.append
-  5. 失敗時: ContentRepository.random_by_category() + template-based copy
+  5. 失敗時: ContentRepository.random_by_category() + template-based copy (堕落煽り途切れさせない)
+  6. D4 酒で「飲まない」ユーザーはプロンプトから D4 を除外
 - **Security Rules**: SEC-03 (PII のログ除外), SEC-05 (プロンプト長上限), SEC-15 (fail-safe)
 
 ### `generate_caption(photo_metadata, user_profile, context) → string` (internal)
-- **Purpose**: US-04-02, US-03-04 用の文言生成ヘルパ (公開 API ではなく ContentSelection 内部で呼ばれる)
+- **Purpose**: US-04-02, US-03-04 用の堕落煽り文言生成ヘルパ (公開 API ではなく ContentSelection 内部で呼ばれる)
 - **Output invariant**: 20-60 文字以内 (PBT-03)
 
 ---
 
 ## BE-05: ContentRepositoryComponent
 
-### `find_restaurants_by_district(district: string, category: enum, limit: integer=3) → Restaurant[]`
-### `find_by_hobby_category(hobby: enum, limit: integer=5) → HobbyContent[]`
-### `find_train_status(line: string) → TrainInfo`
-### `find_weather(district: string) → WeatherInfo`
-- All read-only, dummy data seeded at deploy time
+### `find_restaurants_by_district(district: string, category: enum, limit: integer=3) → Restaurant[]`  # D3
+### `find_by_hobby_category(hobby: enum, limit: integer=5) → HobbyContent[]`  # D5
+### `find_train_status(line: string) → TrainInfo`  # D6
+### `find_weather(district: string) → WeatherInfo`  # D6
+### `find_drinks_by_genre(genre: enum, limit: integer=5) → DrinkContent[]`  # D4 酒テロダミーデータ
+- All read-only, dummy data seeded at deploy time (D3 20+件, D4 25+件, D5 5件/sub-cat, D6 dummy)
 - **Errors**: `NotFoundError`
 
 ---
@@ -241,33 +247,33 @@
 
 ---
 
-## BE-09: TerminationComponent
+## BE-09: TerminationComponent (= 堕落ゲート発動記録)
 
 ### `POST /terminations/clock-out`
-- **Purpose**: ダミー勤怠ボタンが押されたときに呼ばれる
+- **Purpose**: 堕落ゲートのダミー勤怠宣言ボタンが押されたときに呼ばれる
 - **Input**:
   ```yaml
   TerminationRequest:
-    trigger: enum (PUNCTUALITY|EARLY)  # 定時発火 vs 早期
+    trigger: enum (PUNCTUALITY|EARLY)  # 定時発火 (堕落ゲート自動発動) vs 早期堕ち
     timestamp: ISO8601
   ```
 - **Output**:
   ```yaml
   TerminationResponse:
-    recorded: boolean  # 同日2度目以降は false
-    message: string  # AI-generated ねぎらい (20-50 chars)
+    recorded: boolean  # 同日2度目以降は false (堕落ゲート日次冪等)
+    message: string  # AI-generated ダメモード突入メッセージ (20-50 chars)
   ```
 - **Errors**: `AuthenticationError`
 - **Side Effects**:
-  1. DynamoDB `USER#<userId>/TERMINATION#<date>` put-if-absent (日次一意)
+  1. DynamoDB `USER#<userId>/TERMINATION#<date>` put-if-absent (堕落ゲート日次一意)
   2. 2 度目以降は recorded=false で早期 return
-  3. ContentSelection.generate_caption() 相当のプロンプトでねぎらい文を生成
+  3. ContentSelection.generate_caption() 相当のプロンプトでダメモード突入メッセージを生成
   4. AuditComponent (EventBridge)
 - **PBT Rules**: PBT-04 (日次冪等)
 
 ### `handle_leave_now_event(event)` (EventBridge consumer)
-- ReactionComponent からの `LEAVE_NOW` イベントを受けて、早期退勤のサーバー側記録を先行作成
-- (クライアントがボタンを押すまで recorded=false、押されたら true に更新)
+- ReactionComponent からの `LEAVE_NOW` (もう堕ちる) イベントを受けて、早期堕ちのサーバー側記録を先行作成
+- (クライアントが堕落宣言ボタンを押すまで recorded=false、押されたら true に更新)
 
 ---
 
@@ -365,15 +371,15 @@ interface NotificationAdapter {
 
 ---
 
-## FE-05: TerminationOverlayModule
+## FE-05: TerminationOverlayModule (= 堕落ゲート UI)
 
 ### `show(trigger: 'PUNCTUALITY'|'EARLY') → Promise<void>`
-- 全画面オーバーレイ + SE + アニメーション
-- ESC 無効、退勤ボタン押下まで閉じない
+- 堕落ゲート (全画面オーバーレイ) + SE + アニメーション + 「今日の仕事は終わりだ、明日の自分に任せてダメになれ」コピー表示
+- ESC 無効、堕落宣言ボタン押下まで閉じない
 
 ### `onClockOut() → Promise<void>`
 - ApiClient → BE-09 `POST /terminations/clock-out`
-- 返ってきた message を表示
+- 返ってきた message (= ダメモード突入メッセージ) を表示
 
 ---
 
@@ -389,20 +395,21 @@ interface NotificationAdapter {
 
 ---
 
-## FE-07: SchedulerClient
+## FE-07: SchedulerClient (= 堕落ランプ)
 
 ### `startSession(punctuality: HHmm) → void`
-- `setInterval` で 1 分ごとに `compute_rate_table(remaining)` を評価
+- `setInterval` で 1 分ごとに `compute_rate_table(remaining)` を評価 (= 堕落ランプを刻む)
 - 提示時刻になれば `onTrigger()` を発火 (呼び出し側: ReminderFeedModule)
 
 ### `stopSession() → void`
 ### `onTrigger(callback: () => Promise<void>) → void` (event emitter API)
-### `nextPresentAt(): Date` (テスタビリティのため公開、PBT-05 の oracle と比較される)
+### `nextPresentAt(): Date` (テスタビリティのため公開、PBT-05 の oracle = BE-03 と比較される)
 
 **内部 invariant (PBT-03)**:
 - `stopSession()` 後は `onTrigger` が発火しない
 - `remaining` が同じなら `nextPresentAt()` の結果も同じ (純粋関数)
 - `startSession` は冪等 (既に開始中なら何もしない) (PBT-04)
+- 堕落ランプ単調非増加: remaining が減少 → interval も単調非増加
 
 ---
 

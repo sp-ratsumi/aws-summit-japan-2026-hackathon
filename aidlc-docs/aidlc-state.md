@@ -4,8 +4,9 @@
 - **Project Name**: アフターファイブ (After Five)
 - **Project Type**: Greenfield
 - **Start Date**: 2026-05-07T00:00:00Z
-- **Current Stage**: INCEPTION - Requirements Analysis
-- **Context**: 「人をダメにするサービス」をテーマとした、定時退社支援プロダクト開発
+- **Last Update**: 2026-05-08T00:00:00Z
+- **Current Stage**: INCEPTION - Units Generation (awaiting approval)
+- **Context**: 「人をダメにするサービス」をテーマに、仕事人間を "ダメモード" へ堕とすことで翌日の創造性を引き出すプロダクト開発
 
 ## Workspace State
 - **Existing Code**: No
@@ -65,6 +66,13 @@
 
 ## Current Status
 - **Lifecycle Phase**: INCEPTION
-- **Current Stage**: Workflow Planning (awaiting user approval)
-- **Next Stage**: Application Design
-- **Status**: Execution plan ready for review
+- **Current Stage**: Units Generation (完了、次は CONSTRUCTION per-unit loop)
+- **Next Stage**: CONSTRUCTION - Functional Design (per-unit, starting with U6 shared-library)
+- **Status**: 全ドキュメント整合性確認済み (28 Story、25 Component、8 Unit)
+
+## Scope Snapshot
+- **Story 総数**: 28 (MVP 20 / Full 8)
+- **Component 総数**: 25 (Frontend 9 / Backend 12 / Cross-cutting 4)
+- **Service 総数**: 6
+- **Unit 総数**: 8 (U1 identity / U2 reminder / U3 termination / U4 photo / U5 audit-observability / U6 shared-library / U7 frontend / U8 infrastructure)
+- **ダメな欲望カテゴリ (D1-D7)**: MVP で D1-D6、Full で D7

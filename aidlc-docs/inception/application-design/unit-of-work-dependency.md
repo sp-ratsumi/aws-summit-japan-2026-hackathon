@@ -1,7 +1,7 @@
 # Unit of Work Dependency — アフターファイブ
 
-**Version**: 1.0
-**Last Updated**: 2026-05-07
+**Version**: 2.0
+**Last Updated**: 2026-05-08
 
 ---
 
@@ -27,8 +27,8 @@
 
 ### 読み方の例
 
-- **U2 reminder → U4 photo (○)**: U2 が family/pet 写真を提示するときに U4 の Photo メタを読み取るが、API 契約 (OpenAPI) が合意されていれば dummy で開発可能
-- **U3 termination → U2 reminder (◉)**: U3 のねぎらい文生成が U2 の BE-04 を直接呼び出すため、U2 のコードが先行必要
+- **U2 reminder → U4 photo (○)**: U2 が family/pet 写真 (D1 ダメ欲望素材) を提示するときに U4 の Photo メタを読み取るが、API 契約 (OpenAPI) が合意されていれば dummy で開発可能
+- **U3 termination → U2 reminder (◉)**: U3 のダメモード突入メッセージ生成が U2 の BE-04 を直接呼び出すため、U2 のコードが先行必要
 
 ### Cyclic Dependency Check
 
@@ -177,6 +177,8 @@ MVP 段階で本番データを持たない前提:
 | `AfterFiveTable` の PK/SK 設計ミスで Unit 間衝突 | U1〜U5 | U6 Repository でパス命名を一元化、実装は Repository 経由のみ許可 |
 | Lambda Authorizer の設定漏れで全エンドポイントが 403 | U8, U1 | Smoke test (CP-0) で必ず JWT 経由の 200 を確認 |
 | Bedrock 呼び出しで PII 流出 | U2 | U2 の prompt builder で PII redaction をテストする (SEC-03) |
+| **D4 酒カテゴリ** の「飲まない」除外ロジック漏れ | U2 | PBT で "飲まない → D4 が永遠に選ばれない" を invariant として強制 |
+| 堕落ゲートの日次冪等が破れる | U3 | DynamoDB ConditionExpression + PBT-04 で保証 |
 
 ---
 

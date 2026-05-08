@@ -1,8 +1,8 @@
 # Components — アフターファイブ
 
-**Version**: 1.0
-**Last Updated**: 2026-05-07
-**Source of Truth**: Requirements (FR-01〜06), User Stories (US-XX), Application Design Plan
+**Version**: 2.0
+**Last Updated**: 2026-05-08
+**Source of Truth**: Requirements (FR-01〜06), User Stories (US-XX, 28 stories), Application Design Plan
 **Granularity**: 細粒度 (A1=A)
 
 ---
@@ -37,23 +37,23 @@
 - **Scope**: frontend
 - **Responsibilities**:
   - サインアップ / ログイン / パスワードリセット UI (Cognito Hosted UI ではなくカスタム)
-  - 初回ヒアリング (10+ 問) の フォーム / 進行状態管理
-  - 定時設定 UI
+  - 初回ヒアリング (10+ 問、**ダメな欲望プロファイル**収集、D1-D6 + 強度 + **D4 酒**) の フォーム / 進行状態管理
+  - 定時 (= ダメモード突入時刻) 設定 UI
   - プロファイル編集 UI (Full)
 - **Stories**: US-01-01, US-01-02, US-01-03, US-01-04, US-01-05
 - **FRs**: FR-01-01, FR-01-02, FR-01-03
 - **Collaborators**: ApiClient (FE-08), ProfileRepository (BE-02) via API
 - **Security Rules**: SEC-04 (CSP 準拠), SEC-05 (クライアント側の一次検証), SEC-12 (パスワード要件)
-- **PBT Rules**: PBT-02 (プロファイル往復), PBT-04 (冪等送信)
+- **PBT Rules**: PBT-02 (ダメな欲望プロファイル往復), PBT-04 (冪等送信)
 
 ## FE-03: ReminderFeedModule
 
 - **Scope**: frontend
 - **Responsibilities**:
-  - コンテンツカードの表示 (アプリ内モーダル / トースト / フィード)
-  - Action ボタン (見た / あと少し / 興味なし / もう帰る) の受付
-  - 17:00〜18:00 の頻度レンダリング (CSS アニメ、煽り演出)
-- **Stories**: US-02-04, US-02-05, US-02-06, US-02-07, US-02-08, US-02-09
+  - **ダメな未来コンテンツ** カードの表示 (アプリ内モーダル / トースト / フィード)
+  - Action ボタン (見た / あと少し / 興味なし / **もう堕ちる**) の受付
+  - 17:00〜18:00 の **堕落ランプ** レンダリング (CSS アニメ、煽り演出)
+- **Stories**: US-02-04, US-02-05, US-02-06, US-02-07, US-02-08, US-02-09 (D4 酒), US-02-10
 - **FRs**: FR-02-04, FR-03-01, FR-03-02
 - **Collaborators**: SchedulerClient (FE-07), NotificationAdapter (FE-04), ApiClient (FE-08)
 - **Security Rules**: SEC-05 (AI 生成テキストのエスケープ)
@@ -70,13 +70,14 @@
 - **Security Rules**: SEC-04 (クリック後の画面遷移時も CSP 遵守)
 - **Notes**: A3=A に基づき Adapter として実装。アプリ前面/背面の判定 (`visibilitychange`, Tauri `WindowEvent`) で適切な実装を選ぶ
 
-## FE-05: TerminationOverlayModule
+## FE-05: TerminationOverlayModule (= 堕落ゲート UI)
 
 - **Scope**: frontend
 - **Responsibilities**:
-  - 定時到達・早期退勤トリガーでの全画面オーバーレイ表示
-  - ダミー勤怠画面の描画 (退勤ボタン)
-  - SE / アニメーション (ESC 無効化)
+  - 定時到達・早期堕ちトリガーでの **堕落ゲート** (全画面オーバーレイ) 表示
+  - ダミー勤怠画面の描画 (退勤打刻ボタン = 堕落宣言ボタン)
+  - SE / アニメーション (ESC 無効化、本気で堕落を迫る)
+  - ダメモード突入完了メッセージの表示
 - **Stories**: US-03-01, US-03-02, US-03-03, US-03-04
 - **FRs**: FR-04-01
 - **Collaborators**: SchedulerClient (FE-07), ApiClient (FE-08), NotificationAdapter (FE-04)
@@ -86,25 +87,25 @@
 
 - **Scope**: frontend
 - **Responsibilities**:
-  - 画像アップロード UI (drag & drop, タグ選択)
+  - 画像アップロード UI (drag & drop, タグ選択) — D1 ダメ欲望素材の投入窓口
   - 自分の画像一覧 / 削除
 - **Stories**: US-04-01, US-04-03, US-04-04
 - **FRs**: FR-05-01
 - **Collaborators**: PlatformAdapter (FE-09) (ファイル読み込み), ApiClient (FE-08)
 - **Security Rules**: SEC-05 (MIME / 拡張子 / サイズ検証), SEC-08 (自分の画像のみ表示)
 
-## FE-07: SchedulerClient
+## FE-07: SchedulerClient (= 堕落ランプ)
 
 - **Scope**: frontend
 - **Responsibilities**:
-  - 定時1時間前からのコンテンツ提示タイマー管理 (クライアントサイド)
-  - 定時到達検知 → TerminationOverlay 起動
-  - 提示レート (17:00→15min、17:40→3min 等) の計算
-  - 早期退勤イベントの発火 (ReminderFeedModule の "もう帰る" ボタンから)
+  - 定時1時間前からのコンテンツ提示タイマー管理 = **堕落ランプ** (クライアントサイド)
+  - 定時到達検知 → TerminationOverlay (堕落ゲート) 起動
+  - 提示レート (17:00→15min、17:40→3min 等) の計算 (単調非増加の堕落ランプ)
+  - 早期堕ちイベントの発火 (ReminderFeedModule の "もう堕ちる" ボタンから)
 - **Stories**: US-02-01, US-03-01, US-03-03
 - **FRs**: FR-02-01, FR-04-01
 - **Collaborators**: ReminderFeedModule (FE-03), TerminationOverlayModule (FE-05), ApiClient (FE-08)
-- **PBT Rules**: PBT-03 (レート invariant), PBT-05 (reference table oracle), PBT-06 (stateful)
+- **PBT Rules**: PBT-03 (堕落ランプ単調非増加 invariant), PBT-05 (reference table oracle), PBT-06 (stateful)
 - **Notes**: C3=A によりクライアントサイド実装。アプリ非起動時は機能しない制約を明記。
 
 ## FE-08: ApiClient
@@ -141,7 +142,7 @@
   - `user_id = token.sub` の抽出
   - Lambda Authorizer 関数 / 共通ミドルウェアの提供
   - IDOR チェックユーティリティ (`verify_ownership(resource_user_id, caller_user_id)`)
-- **Stories**: US-01-02, US-01-05, US-02-05, US-02-09, US-04-01, US-04-02, US-04-03
+- **Stories**: US-01-02, US-01-05, US-02-05, US-02-10, US-04-01, US-04-02, US-04-03
 - **FRs**: FR-01-01, 横断
 - **Security Rules**: SEC-08, SEC-12
 - **PBT Rules**: PBT-02 (JWT claim 往復)
@@ -150,48 +151,49 @@
 
 - **Scope**: backend
 - **Responsibilities**:
-  - UserProfile CRUD (ヒアリング結果 + 定時 + 趣味 / 家族 / 推し 等)
+  - **ダメな欲望プロファイル** CRUD (ヒアリング結果: D1 家族/ペット、D2 推し、D3 食、**D4 酒**、D5 趣味、D6 通勤、ダメモード強度 + 定時 = ダメモード突入時刻)
   - 部分更新の冪等保証
 - **Stories**: US-01-03, US-01-04, US-01-05
 - **FRs**: FR-01-02, FR-01-03
 - **Collaborators**: RepositoryLayer (`ProfileRepository`), AuthComponent (BE-01), AuditComponent (BE-11)
 - **Security Rules**: SEC-05 (入力検証), SEC-08 (所有権), SEC-13 (プロファイル変更の監査)
-- **PBT Rules**: PBT-02 (round-trip), PBT-04 (idempotent), PBT-07 (domain generator)
+- **PBT Rules**: PBT-02 (round-trip), PBT-04 (idempotent), PBT-07 (domain generator — ダメな欲望プロファイル生成器)
 
-## BE-03: SchedulerComponent (Backend 側)
+## BE-03: SchedulerComponent (Backend 側、= 堕落ランプ reference 実装)
 
 - **Scope**: backend
 - **Responsibilities**:
-  - 「次回提示時刻」計算ロジックの **参照実装** (reference table) を提供 (PBT-05 oracle 用)
+  - 「次回提示時刻」計算ロジックの **参照実装** (reference table = 堕落ランプ定数テーブル) を提供 (PBT-05 oracle 用)
   - クライアントから提示イベントを受けて履歴に書き込むエンドポイント (ContentSelection から呼び出される)
 - **Stories**: US-02-01
 - **FRs**: FR-02-01
 - **Collaborators**: HistoryComponent (BE-07)
-- **PBT Rules**: PBT-03 (invariant), PBT-05 (oracle)
+- **PBT Rules**: PBT-03 (堕落ランプ単調非増加 invariant), PBT-05 (oracle)
 - **Notes**: クライアントサイドスケジューラ (FE-07) のオラクルとして機能、同一ロジックを重複実装する
 
-## BE-04: ContentSelectionComponent
+## BE-04: ContentSelectionComponent (= ダメな未来ジェネレータ)
 
 - **Scope**: backend
 - **Responsibilities**:
-  - Amazon Bedrock (Claude) へのプロンプト生成 + 呼び出し + 応答パース
-  - タイムアウト / 例外時のフォールバック (テンプレート文言 + ルールベース選定)
-  - 履歴重複排除 / カテゴリ多様性の invariant 保証
-  - 入力: `{ userId, profile, context(time/location/weather), recentHistory(N=10) }`
-  - 出力: `{ category, contentId, title, body, imageUrl? }`
-- **Stories**: US-02-03, US-02-06, US-02-07, US-02-08, US-03-04, US-04-02
+  - Amazon Bedrock (Claude) へのプロンプト生成 + 呼び出し + 応答パース (= "ダメな未来" の具象化)
+  - **ダメな欲望プロファイル** に基づくカテゴリフィルタ (D4 酒の「飲まない」除外 等)
+  - タイムアウト / 例外時のフォールバック (テンプレート文言 + ルールベース選定) = 堕落煽りを途切れさせない
+  - 履歴重複排除 / ダメ欲望カテゴリ多様性の invariant 保証
+  - 入力: `{ userId, profile(ダメな欲望プロファイル), context(time/location/weather), recentHistory(N=10) }`
+  - 出力: `{ desireCategory(D1-D7), category, contentId, title, body, imageUrl? }`
+- **Stories**: US-02-03, US-02-06, US-02-07, US-02-08, US-02-09 (D4 酒), US-03-04, US-04-02
 - **FRs**: FR-02-01, FR-02-02
 - **Collaborators**: ContentRepositoryComponent (BE-05), PhotoComponent (BE-06), HistoryComponent (BE-07), Bedrock (external)
 - **Security Rules**: SEC-03 (PII 除外ログ), SEC-05 (プロンプト長検証), SEC-15 (fail-safe default)
-- **PBT Rules**: PBT-03 (多様性 invariant)
+- **PBT Rules**: PBT-03 (多様性 invariant、D4「飲まない」除外 invariant)
 
 ## BE-05: ContentRepositoryComponent
 
 - **Scope**: backend
 - **Responsibilities**:
-  - ダミーデータ (飲食 / 趣味 / 電車 / 天気) の検索 (`findByCategoryAndLocation`, `findByHobbyCategory`, etc.)
+  - ダミーデータ (D3 飲食 / D4 酒 / D5 趣味 / D6 電車 / D6 天気) の検索 (`findByCategoryAndLocation`, `findByHobbyCategory`, `findByDrinkGenre`, etc.)
   - DynamoDB の Content テーブル (単一テーブル設計の `Content#<category>` prefix) をラップ
-- **Stories**: US-02-06, US-02-07, US-02-08
+- **Stories**: US-02-06, US-02-07, US-02-08, US-02-09 (D4)
 - **FRs**: FR-02-02
 - **Security Rules**: SEC-01 (DynamoDB 暗号化), SEC-05 (クエリパラメータ検証)
 
@@ -200,7 +202,7 @@
 - **Scope**: backend
 - **Responsibilities**:
   - S3 Pre-signed URL 発行 (PUT, `user/{userId}/photos/*` に限定)
-  - メタデータの CRUD (PhotoTable)
+  - メタデータの CRUD (PhotoTable) — D1 ダメ欲望素材の管理
   - 削除 (S3 delete + メタ delete)
 - **Stories**: US-04-01, US-04-03, US-04-04
 - **FRs**: FR-05-01
@@ -212,9 +214,9 @@
 
 - **Scope**: backend
 - **Responsibilities**:
-  - 提示履歴の append (userId, timestamp, category, contentId, ...)
+  - 提示履歴 (ダメ堕ち記録) の append (userId, timestamp, category, **desireCategory (D1-D7)**, contentId, ...)
   - 指定日の履歴取得 / 直近 N 件取得
-- **Stories**: US-02-01, US-02-03, US-02-09
+- **Stories**: US-02-01, US-02-03, US-02-10
 - **FRs**: FR-03-01
 - **Security Rules**: SEC-08 (自分の履歴のみ), SEC-14 (ログ保持 ≥ 90 日 相当の DynamoDB TTL)
 
@@ -222,25 +224,26 @@
 
 - **Scope**: backend
 - **Responsibilities**:
-  - リアクション (SEEN / IGNORE / LEAVE_NOW) の永続化
+  - リアクション (SEEN / IGNORE / LEAVE_NOW = もう堕ちる) の永続化
   - 冪等 key (`userId#contentId#action#timestamp`) による重複排除
-  - 「もう帰る」アクション → TerminationComponent へイベント発火
+  - 「もう堕ちる」アクション → TerminationComponent へイベント発火 (早期堕落ゲート)
 - **Stories**: US-02-05, US-03-03
 - **FRs**: FR-03-02
 - **Collaborators**: TerminationComponent (BE-09) (EventBridge 経由, D1=D)
 - **Security Rules**: SEC-08
 - **PBT Rules**: PBT-04 (idempotent)
 
-## BE-09: TerminationComponent
+## BE-09: TerminationComponent (= 堕落ゲート記録)
 
 - **Scope**: backend
 - **Responsibilities**:
-  - 退勤イベントの記録 (日次一意、同日再発火しない)
-  - ねぎらい一言生成 (Bedrock 呼び出し、フォールバックあり)
+  - **堕落ゲート発動** (退勤イベント) の記録 (日次一意、同日再発火しない)
+  - ダメモード突入完了メッセージ (Bedrock 呼び出し、フォールバックあり)
 - **Stories**: US-03-02, US-03-03, US-03-04
 - **FRs**: FR-04-01
 - **Collaborators**: ContentSelectionComponent (BE-04) のプロンプト再利用, AuditComponent (BE-11)
 - **Security Rules**: SEC-14 (退勤記録の監査), SEC-15 (fail-safe default)
+- **PBT Rules**: PBT-04 (堕落ゲート日次冪等)
 
 ## BE-10: NotificationComponent (Server Side, Optional MVP)
 
@@ -257,7 +260,7 @@
 
 - **Scope**: cross-cutting (backend)
 - **Responsibilities**:
-  - 重要操作 (profile 更新 / photo 削除 / アカウント削除) の監査ログ書き込み
+  - 重要操作 (profile 更新 / photo 削除 / アカウント削除 / 堕落ゲート発動) の監査ログ書き込み
   - append-only DynamoDB テーブル + CloudWatch Logs (2 系統で冗長)
   - `before`, `after`, `actor`, `timestamp`, `source_ip` を記録
 - **Stories**: US-04-03, US-05-02, US-05-05, US-03-03
@@ -290,7 +293,7 @@
 
 - **Scope**: cross-cutting
 - **Responsibilities**:
-  - バックエンドの Pydantic モデル (入力検証 + シリアライズ)
+  - バックエンドの Pydantic モデル (入力検証 + シリアライズ、**ダメな欲望プロファイル** スキーマ含む)
   - OpenAPI YAML (`openapi/schema.yaml`) を single source of truth に
   - `openapi-typescript` でフロントの TS 型を生成
 - **Security Rules**: SEC-05 (入力検証の実装)
@@ -301,12 +304,12 @@
 - **Scope**: cross-cutting
 - **D2=C 準拠**: single-table + Repository 抽象
 - テーブル: `AfterFiveTable` (PK=partitionKey, SK=sortKey)
-  - `USER#<userId>` / `PROFILE` → ユーザープロファイル
-  - `USER#<userId>` / `PHOTO#<photoId>` → 写真メタ
-  - `USER#<userId>` / `HISTORY#<iso-ts>#<contentId>` → 提示履歴
+  - `USER#<userId>` / `PROFILE` → **ダメな欲望プロファイル** (D1-D7 + ダメモード強度)
+  - `USER#<userId>` / `PHOTO#<photoId>` → 写真メタ (D1 素材)
+  - `USER#<userId>` / `HISTORY#<iso-ts>#<contentId>` → 提示履歴 (ダメ堕ち記録, desireCategory 付き)
   - `USER#<userId>` / `REACTION#<iso-ts>#<contentId>` → リアクション
-  - `USER#<userId>` / `TERMINATION#<yyyy-mm-dd>` → 退勤記録 (日次一意)
-  - `CONTENT#<category>` / `<contentId>` → ダミーコンテンツ
+  - `USER#<userId>` / `TERMINATION#<yyyy-mm-dd>` → 堕落ゲート発動記録 (日次一意)
+  - `CONTENT#<category>` / `<contentId>` → ダミーコンテンツ (D3/D4/D5/D6 のシードデータ)
   - `AUDIT#<yyyy-mm-dd>` / `<iso-ts>#<actor>` → 監査ログ (別テーブル案も)
 - Repository Classes: `ProfileRepository`, `PhotoRepository`, `HistoryRepository`, `ReactionRepository`, `TerminationRepository`, `ContentRepository`, `AuditRepository`
 - **PBT Rules**: PBT-02 (serialize/deserialize), PBT-04 (idempotent put)
@@ -348,23 +351,24 @@
 |---|---|
 | US-01-01 ユーザー登録 | FE-02, BE-01, BE-02, X-02 |
 | US-01-02 ログイン | FE-01, FE-02, FE-08, BE-01 |
-| US-01-03 ヒアリング | FE-02, BE-02, X-02, X-03 |
-| US-01-04 定時設定 | FE-02, BE-02, X-03 |
+| US-01-03 ヒアリング (ダメな欲望プロファイル) | FE-02, BE-02, X-02, X-03 |
+| US-01-04 定時設定 (ダメモード突入時刻) | FE-02, BE-02, X-03 |
 | US-01-05 プロファイル編集 | FE-02, BE-01, BE-02, BE-11 |
-| US-02-01 スケジューラ | FE-07, BE-03, BE-07 |
+| US-02-01 スケジューラ (堕落ランプ) | FE-07, BE-03, BE-07 |
 | US-02-02 コンテキスト収集 | FE-09, FE-08 |
-| US-02-03 AI 選定 | FE-07, BE-04, BE-05, BE-07, Bedrock |
+| US-02-03 AI 選定 (ダメな未来ジェネレータ) | FE-07, BE-04, BE-05, BE-07, Bedrock |
 | US-02-04 提示 UI | FE-03, FE-04 |
-| US-02-05 リアクション | FE-03, BE-01, BE-08 |
-| US-02-06 飲食店 | BE-04, BE-05 |
-| US-02-07 趣味系 | BE-04, BE-05 |
-| US-02-08 電車・天気 | BE-04, BE-05 |
-| US-02-09 履歴 | FE-03, BE-07 |
-| US-03-01 定時オーバーレイ | FE-05, FE-07, FE-04 |
-| US-03-02 ダミー勤怠 | FE-05, BE-09 |
-| US-03-03 早期退勤 | FE-03, FE-05, BE-08, BE-09 |
-| US-03-04 退勤メッセージ | FE-05, BE-09, BE-04 |
-| US-04-01 写真アップロード | FE-06, FE-09, BE-01, BE-06 |
+| US-02-05 リアクション (もう堕ちる) | FE-03, BE-01, BE-08 |
+| US-02-06 D3 飲食店 | BE-04, BE-05 |
+| US-02-07 D2/D5 趣味・推し | BE-04, BE-05 |
+| US-02-08 D6 電車・天気 | BE-04, BE-05 |
+| US-02-09 **D4 酒テロ** | BE-04, BE-05 |
+| US-02-10 履歴 | FE-03, BE-07 |
+| US-03-01 堕落ゲート発動 | FE-05, FE-07, FE-04 |
+| US-03-02 ダミー勤怠 (堕落宣言ボタン) | FE-05, BE-09 |
+| US-03-03 早期堕ち | FE-03, FE-05, BE-08, BE-09 |
+| US-03-04 ダメモード突入メッセージ | FE-05, BE-09, BE-04 |
+| US-04-01 写真アップロード (D1 素材) | FE-06, FE-09, BE-01, BE-06 |
 | US-04-02 AI キャプション | BE-04, BE-06 |
 | US-04-03 写真削除 | FE-06, BE-06, BE-11 |
 | US-04-04 タグ分類 | FE-06, BE-06 |
@@ -374,4 +378,4 @@
 | US-05-04 レート制限 | BE-12 (API Gateway Usage Plan) |
 | US-05-05 監査ログ | BE-11, BE-12 |
 
-全 27 Story にマッピングあり ✅
+全 28 Story にマッピングあり ✅

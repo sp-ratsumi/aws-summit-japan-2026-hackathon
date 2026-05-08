@@ -4,8 +4,9 @@
 - **Project Name**: アフターファイブ (After Five)
 - **Project Type**: Greenfield
 - **Start Date**: 2026-05-07T00:00:00Z
-- **Last Update**: 2026-05-08T00:00:00Z
+- **Last Update**: 2026-05-08T00:45:00Z
 - **Current Stage**: INCEPTION - Units Generation (awaiting approval)
+- **Recent Change**: Diagram convention 強化 — シーケンス図を Mermaid 化 + participant を AWS サービスレベルに統一 (services.md / component-dependency.md、計 5 本)。steering rule `diagram-conventions.md` 更新。
 - **Context**: 「人をダメにするサービス」をテーマに、仕事人間を "ダメモード" へ堕とすことで翌日の創造性を引き出すプロダクト開発
 
 ## Workspace State

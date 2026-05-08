@@ -221,54 +221,64 @@
 
 # Service Orchestration Flow Diagrams
 
+**participant の粒度**: AWS サービスレベル (Client / API Gateway / Lambda / DynamoDB / S3 / Bedrock / Cognito / EventBridge)。アプリ内コンポーネントや関数名は参加者としない — Lambda 内の責務 / サービス関数呼び出しは `Note over Lambda: ...` で補足する。
+
 ## Reminder Flow (コア体験、= 堕落ランプ + ダメな未来配信)
 
-```
-Client (FE-07)       API Gateway          Lambda (s2_reminder)       Bedrock
- = 堕落ランプ                           = ダメな未来ジェネレータ
-    │                    │                       │                     │
-    │ 17:15 timer hits   │                       │                     │
-    ├──► POST            │                       │                     │
-    │   /content/next    │                       │                     │
-    │                    ├──► invoke             │                     │
-    │                    │                       ├── verify_jwt        │
-    │                    │                       ├── read profile      │
-    │                    │                       │   (ダメな欲望 P)    │
-    │                    │                       ├── read history      │
-    │                    │                       ├──► InvokeModel ────►│
-    │                    │                       │                     ├ 3s
-    │                    │                       │◄── response ────────┤
-    │                    │                       ├── sanitize/validate │
-    │                    │                       ├── history.append    │
-    │                    │                       │◄─ response          │
-    │                    │◄──────────────────────┤                     │
-    │◄── 200 ContentResp │                       │                     │
-    │                    │                       │                     │
-    │ render modal       │                       │                     │
-    │ (FE-03 feed)       │                       │                     │
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as Client (堕落ランプ)
+    participant APIGW as API Gateway
+    participant Lambda as Lambda (s2_reminder)
+    participant DDB as DynamoDB
+    participant Bedrock as Bedrock
+
+    Note over Client: 17:15 timer hits
+    Client->>APIGW: POST /content/next (JWT)
+    APIGW->>Lambda: invoke (after JWT Authorizer)
+    Note over Lambda: S-02 select_and_record_next_content<br/>- verify_jwt<br/>- build prompt<br/>(ダメな未来ジェネレータ)
+    Lambda->>DDB: GetItem profile (ダメな欲望プロファイル)
+    DDB-->>Lambda: profile
+    Lambda->>DDB: Query history (recent 10)
+    DDB-->>Lambda: history
+    Lambda->>Bedrock: InvokeModel
+    Note right of Bedrock: 約 3s
+    Bedrock-->>Lambda: response
+    Note over Lambda: sanitize / validate<br/>(D4 "飲まない" なら除外)
+    Lambda->>DDB: PutItem history append
+    DDB-->>Lambda: ok
+    Lambda-->>APIGW: ContentResponse
+    APIGW-->>Client: 200 ContentResp
+    Note over Client: render modal (堕落煽り表示)
 ```
 
 ## Termination Flow (= 堕落ゲート発動)
 
-```
-Client (FE-05)       API Gateway          Lambda (s3_termination)    EventBridge
- = 堕落ゲート UI
-    │                    │                       │                        │
-    │ 18:00 堕落ゲート   │                       │                        │
-    │ 宣言ボタン押下     │                       │                        │
-    ├──► POST            │                       │                        │
-    │   /terminations/   │                       │                        │
-    │      clock-out     │                       │                        │
-    │                    ├──► invoke             │                        │
-    │                    │                       ├ verify_jwt             │
-    │                    │                       ├ put_if_absent date=today
-    │                    │                       │  (堕落ゲート日次冪等) │
-    │                    │                       ├ generate_closing_msg   │
-    │                    │                       │ (ダメモード突入メッセ)│
-    │                    │                       ├──► emit ──────────────►│
-    │                    │                       │    user.terminated     │ ──► Audit Lambda
-    │                    │                       │◄─ msg                  │
-    │◄── 200 message     │◄──────────────────────┤                        │
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as Client (堕落ゲート UI)
+    participant APIGW as API Gateway
+    participant Lambda as Lambda (s3_termination)
+    participant DDB as DynamoDB
+    participant Bedrock as Bedrock
+    participant EB as EventBridge
+    participant AuditLambda as Lambda (audit consumer)
+
+    Note over Client: 18:00 堕落ゲート<br/>宣言ボタン押下
+    Client->>APIGW: POST /terminations/clock-out (JWT)
+    APIGW->>Lambda: invoke
+    Note over Lambda: S-03 clock_out<br/>- verify_jwt
+    Lambda->>DDB: PutItem (ConditionExpression)<br/>堕落ゲート日次冪等
+    DDB-->>Lambda: inserted/existing
+    Lambda->>Bedrock: InvokeModel<br/>(ダメモード突入メッセ、fallback あり)
+    Bedrock-->>Lambda: message
+    Lambda->>EB: PutEvents user.terminated
+    EB->>AuditLambda: deliver user.terminated
+    AuditLambda->>DDB: PutItem audit log
+    Lambda-->>APIGW: TerminationResponse
+    APIGW-->>Client: 200 { recorded, message }
 ```
 
 ---

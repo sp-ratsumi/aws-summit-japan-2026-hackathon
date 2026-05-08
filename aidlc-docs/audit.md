@@ -301,3 +301,22 @@
 **Context**: Concept v2.0 brush-up — total documentation review and alignment
 
 ---
+
+## Diagram Convention Update — Mermaid Migration
+**Timestamp**: 2026-05-08T00:30:00Z
+**User Input**: "シーケンス図はASCIIではなく、mermaidで作成すること / 続けて"
+**AI Response**: "新ルール `.kiro/steering/aws-aidlc-rules/diagram-conventions.md` を作成 (シーケンス図は Mermaid `sequenceDiagram` 必須、workspace-level で `common/ascii-diagram-standards.md` に優先)。既存 ASCII シーケンス図を Mermaid へ移行:
+(1) services.md — Reminder Flow / Termination Flow (2 本)
+(2) component-dependency.md — 5.1 Reminder / 5.2 Termination / 5.3 Photo Upload (3 本)
+合計 5 本の ASCII シーケンス図を Mermaid `sequenceDiagram` に書き換え。`actor` / `participant` + `as` 別名 + `autonumber` + `Note` + `alt` を使用。ルール準拠検証: `aidlc-docs/**/*.md` 内に ─►/◄─ の残存なし。ディレクトリツリー (unit-of-work.md) はシーケンス図ではないためそのまま維持。Units Generation 承認待ち状態は変更なし、次に Units Generation 完了メッセージを再提示する。"
+**Context**: Documentation hygiene — diagram convention alignment while awaiting Units Generation approval
+
+---
+
+## Diagram Convention Update — participant 粒度を AWS サービスレベルへ統一
+**Timestamp**: 2026-05-08T00:45:00Z
+**User Input**: "ActorはAWSのサービスレベルで良い"
+**AI Response**: "シーケンス図 5 本 (services.md 2 本 / component-dependency.md 3 本) の `actor` / `participant` を AWS サービスレベル (Client / API Gateway / Lambda / DynamoDB / S3 / Bedrock / EventBridge) に統一。アプリ内コンポーネント ID (FE-07 / BE-01 / ProfileRepo / S-02 等) を participant から排除し、Lambda 内責務は `Note over Lambda: ...` で補足する形式に統一。Repository 呼び出しは `Lambda->>DDB: GetItem/Query/PutItem/UpdateItem` へ、Photo 取得は `Lambda->>S3: GetObject/HeadObject` へ、EventBridge 経由 Audit は独立 Lambda として追加表示。steering rule `diagram-conventions.md` に「participant は AWS サービスレベル」MANDATORY セクションと Validation Checklist 項目を追記。"
+**Context**: Documentation hygiene — participant granularity normalization, preserving Units Generation approval-pending status
+
+---

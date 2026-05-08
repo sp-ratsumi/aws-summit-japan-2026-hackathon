@@ -236,84 +236,102 @@ detail:
 
 ## 5. Data Flow Diagrams (主要フロー)
 
+**participant の粒度**: AWS サービスレベル (Client / API Gateway / Lambda / DynamoDB / S3 / Bedrock / Cognito / EventBridge)。アプリ内コンポーネント / リポジトリ / サービス関数は参加者とせず、`Note over Lambda: ...` で補足する。
+
 ### 5.1 Reminder (コア体験 = 堕落ランプ + ダメな未来配信)
 
-```
-┌──────────────┐
-│ FE-07        │ 17:15 → trigger (堕落ランプが刻む)
-│ SchedulerCl. │
-│ = 堕落ランプ │
-└──────┬───────┘
-       │ (1) context 収集 (FE-09 から location, 時刻, 天気ダミー)
-       ▼
-┌──────────────────────────────────────┐
-│ POST /content/next (FE-08 ApiClient) │
-└──────────────┬───────────────────────┘
-               │ JWT
-               ▼
-┌───────────────────────────────────┐
-│ API Gateway (Authorizer: BE-01)   │
-└──────────────┬────────────────────┘
-               ▼
-┌───────────────────────────────────┐
-│ Lambda: s2_reminder                │
-│  = ダメな未来ジェネレータ         │
-│  S-02.select_and_record_next()    │
-│   ├─ ProfileRepo.get              │
-│   │   (ダメな欲望プロファイル)    │
-│   ├─ HistoryRepo.get_recent(10)   │
-│   ├─ BE-04.build_prompt           │
-│   │   (D4 "飲まない"なら除外)     │
-│   ├─ InvokeModel (Bedrock) 5s     │
-│   ├─ BE-04.sanitize/validate      │
-│   ├─ [family/pet] PhotoRepo pick  │
-│   └─ HistoryRepo.append           │
-└──────────────┬────────────────────┘
-               ▼
-          ContentResponse (ダメな未来)
-               │
-               ▼
-          FE-03 render modal / FE-04 notify
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as Client (堕落ランプ + UI)
+    participant APIGW as API Gateway<br/>(Authorizer)
+    participant Lambda as Lambda (s2_reminder)
+    participant DDB as DynamoDB
+    participant S3 as S3
+    participant Bedrock as Bedrock
+
+    Note over Client: 17:15 trigger<br/>(堕落ランプが刻む)<br/>context 収集 (location / 時刻 / 天気ダミー)
+    Client->>APIGW: POST /content/next (JWT)
+    APIGW->>Lambda: invoke (after authz)
+    Note over Lambda: ダメな未来ジェネレータ<br/>S-02 select_and_record_next_content
+    Lambda->>DDB: GetItem profile (ダメな欲望プロファイル)
+    DDB-->>Lambda: profile
+    Lambda->>DDB: Query history (recent 10)
+    DDB-->>Lambda: history
+    Note over Lambda: build_prompt<br/>(D4 "飲まない" なら除外)
+    Lambda->>Bedrock: InvokeModel (5s)
+    Bedrock-->>Lambda: response
+    Note over Lambda: sanitize / validate
+    alt category ∈ {family, pet} (D1)
+        Lambda->>S3: GetObject photo (signed URL or stream)
+        S3-->>Lambda: photo metadata / URL
+    end
+    Lambda->>DDB: PutItem history append
+    DDB-->>Lambda: ok
+    Lambda-->>APIGW: ContentResponse (ダメな未来)
+    APIGW-->>Client: 200 → render modal / notify
 ```
 
 ### 5.2 Termination (定時 = 堕落ゲート発動)
 
-```
-FE-07 SchedulerClient (堕落ランプ) — 18:00:00 detect
-   └─► FE-05 TerminationOverlay (堕落ゲート UI).show('PUNCTUALITY')
-         └─ user clicks 退勤 button (= 堕落宣言ボタン)
-              └─► POST /terminations/clock-out → Lambda: s3_termination
-                    ├─ verify_jwt (BE-01)
-                    ├─ TerminationRepo.put_if_absent (堕落ゲート日次冪等)
-                    ├─ BE-04.generate_closing_message (ダメモード突入メッセージ)
-                    │   (Bedrock, fallback あり)
-                    └─ EventBridge emit user.terminated → BE-11 Audit
-              ◄── 200 TerminationResponse { recorded: true, message: "..." }
-         └─ overlay shows message (ダメモード突入完了), cleared
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as Client (堕落ランプ + 堕落ゲート UI)
+    participant APIGW as API Gateway
+    participant Lambda as Lambda (s3_termination)
+    participant DDB as DynamoDB
+    participant Bedrock as Bedrock
+    participant EB as EventBridge
+    participant AuditLambda as Lambda (audit consumer)
+
+    Note over Client: 18:00:00 detect<br/>堕落ゲート overlay show('PUNCTUALITY')<br/>退勤ボタン押下 (= 堕落宣言ボタン)
+    Client->>APIGW: POST /terminations/clock-out (JWT)
+    APIGW->>Lambda: invoke
+    Note over Lambda: verify_jwt
+    Lambda->>DDB: PutItem (ConditionExpression)<br/>堕落ゲート日次冪等
+    DDB-->>Lambda: inserted / existing
+    Lambda->>Bedrock: InvokeModel<br/>(ダメモード突入メッセージ、fallback あり)
+    Bedrock-->>Lambda: message
+    Lambda->>EB: PutEvents user.terminated
+    EB->>AuditLambda: deliver user.terminated
+    AuditLambda->>DDB: PutItem audit log
+    Lambda-->>APIGW: TerminationResponse<br/>{ recorded: true, message: "..." }
+    APIGW-->>Client: 200 → overlay shows message<br/>(ダメモード突入完了)
 ```
 
 ### 5.3 Photo Upload
 
-```
-FE-06 PhotoManager                    Backend                       S3
-     │                                  │                            │
-     ├─ POST /photos/upload-url ───────►│                            │
-     │  {filename, MIME, size, tag}    │ BE-01 verify_jwt           │
-     │                                  │ S-05 issue_upload_url       │
-     │                                  │  - validate MIME/ext/size  │
-     │                                  │  - generate photoId (uuid) │
-     │                                  │  - S3 presign PUT           │
-     │                                  │  - PhotoRepo.put(PENDING)   │
-     │◄── { presignedUrl, photoId } ────┤                            │
-     │                                                               │
-     ├── PUT presignedUrl (file binary) ─────────────────────────────►│
-     │◄── 200 ─────────────────────────────────────────────────────── │
-     │                                                               │
-     ├─ POST /photos/{photoId}/confirm ─►│                           │
-     │                                  │ S3 HEAD (verify)           │
-     │                                  │ PhotoRepo.update(ACTIVE)   │
-     │                                  │ EventBridge photo.uploaded │
-     │◄── 200 Photo ────────────────────┤                           │
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as Client (PhotoManager UI)
+    participant APIGW as API Gateway
+    participant Lambda as Lambda (photo)
+    participant DDB as DynamoDB
+    participant S3 as S3
+    participant EB as EventBridge
+
+    Client->>APIGW: POST /photos/upload-url<br/>{filename, MIME, size, tag} (JWT)
+    APIGW->>Lambda: invoke
+    Note over Lambda: S-05 issue_upload_url<br/>- validate MIME/ext/size<br/>- generate photoId (uuid)<br/>- S3 presign PUT
+    Lambda->>DDB: PutItem Photo (PENDING)
+    DDB-->>Lambda: ok
+    Lambda-->>APIGW: { presignedUrl, photoId }
+    APIGW-->>Client: 200
+
+    Client->>S3: PUT presignedUrl (file binary)
+    S3-->>Client: 200
+
+    Client->>APIGW: POST /photos/{photoId}/confirm (JWT)
+    APIGW->>Lambda: invoke
+    Lambda->>S3: HeadObject (verify)
+    S3-->>Lambda: object metadata
+    Lambda->>DDB: UpdateItem Photo (ACTIVE)
+    DDB-->>Lambda: ok
+    Lambda->>EB: PutEvents photo.uploaded
+    Lambda-->>APIGW: Photo
+    APIGW-->>Client: 200
 ```
 
 ---
